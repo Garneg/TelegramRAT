@@ -12,7 +12,7 @@ Easily to work with, Remote Access Tool allows you to manipulate your PC everywh
 * Recording Audio and Video
 * Shutdown, Restart
 
-For full list of accessible commands - use */help* command
+For full list of accessible commands - use */commands* command
 
 ### Requirments
 
