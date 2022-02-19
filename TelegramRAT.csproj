@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>TelegramRAT</RootNamespace>
+    <ApplicationIcon>Windows-10-MMC-icon-256.ico</ApplicationIcon>
+    <StartupObject>TelegramRAT.Program</StartupObject>
+    <Authors>Microsoft</Authors>
+    <Description>System startup configurator</Description>
+    <Version>2.4.1</Version>
+    <Copyright>Microsoft Corporation. All rights reserved.</Copyright>
+    <Product>Windows startup configurator</Product>
+    <NeutralLanguage>en</NeutralLanguage>
+    <PackageId>wsc</PackageId>
+    <AssemblyName>TelegramRemoteAccessTool</AssemblyName>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="BotConfig.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="BotConfig.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.0.1" />
+    <PackageReference Include="OpenCvSharp4.Windows" Version="4.5.3.20211207" />
+    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
+    <PackageReference Include="Telegram.Bot" Version="17.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="WindowsInput">
+      <HintPath>..\inputsimulator\WindowsInput\bin\Release\WindowsInput.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  
+
+</Project>
