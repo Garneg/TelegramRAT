@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29728.190
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelegramRAT", "TelegramRAT.csproj", "{06EEA588-F895-4003-B24B-0BEB793B18A5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TelegramRAT", "TelegramRAT.csproj", "{06EEA588-F895-4003-B24B-0BEB793B18A5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{53C1BEC1-84D3-4946-A3B5-8987ADFCC0DF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,6 +20,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{06EEA588-F895-4003-B24B-0BEB793B18A5} = {53C1BEC1-84D3-4946-A3B5-8987ADFCC0DF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {78A3733E-9753-4065-80E5-0E73F0320A97}
