@@ -1,5 +1,5 @@
  
-# Telegram remote access tool
+# Telegram Remote Access Tool
 
 Easily to work with, Remote Access Tool allows you to manipulate your PC everywhere you go with only one Telegram bot!
 
