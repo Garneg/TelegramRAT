@@ -5,10 +5,10 @@ Administration tool for Windows platform, easy accessable through you personal T
 If you want to implement your own command - there will be infrastucture for you to do it simply.
 
 ### Features
-* Screenshots
 * Keyboard and Mouse Input Simulation
 * Full Access to File System (including files upload)
 * CMD Commands Executing
+* Python Scripts Executing
 * Recording Audio and Video
 * Shutdown, Restart
 
