@@ -23,6 +23,10 @@ For full list of accessible commands - use */commands* command
 
 ### Resources
 
-*Needs to be done*
-
 Based on [F4RBER's Telegram_RAT_CSharp](https://github.com/f4rber/Telegram_RAT_CSharp)
+
+### Disclaimer
+This software was written in educational purposes only, everything you do with my code is at your own risk, i do not take responsibility for all possible damage you might cause using code in this repository. Remember to be a good boy, and not to spread malicious soft, because YOU WILL BE PUNISHED ANYWAY.
+
+
+
