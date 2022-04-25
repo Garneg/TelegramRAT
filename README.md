@@ -23,7 +23,7 @@ For full list of accessible commands - use */commands* command
 - Telegram Bot. [How to create one](https://core.telegram.org/bots)
 
 ### Resources
-
+[How to add your own command](https://github.com/Garneg/TelegramRAT/edit/master/How2Add.md)
 
 Based on [F4RBER's Telegram_RAT_CSharp](https://github.com/f4rber/Telegram_RAT_CSharp)
 
