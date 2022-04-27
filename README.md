@@ -2,7 +2,7 @@
 Administration tool for Windows platform, easy accessable through you personal Telegram bot. All commands have description and example, so you won't get lost.
 If you want to implement your own command - there is infrastucture for you to do it simply. 
 
-This software was written in educational purposes only, everything you do with my code is at your own risk, i do not take responsibility for all possible damage you might cause using code in this repository. Remember to be a good boy, and not to spread malicious soft, because YOU WILL BE PUNISHED ANYWAY.
+This software was written in educational purposes only, everything you do with my code is at your own risk, i do not take responsibility for all possible damage you might cause using code in this repository. Remember to be a good boy, and not to spread malicious soft😉
 
 
 ### Features
