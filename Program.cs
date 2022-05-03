@@ -930,7 +930,6 @@ namespace TelegramRAT
                         {
                             if (update.Message.Type == MessageType.Photo)
                             {
-
                                 using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
                                 {
                                     Telegram.Bot.Types.File wallpaperPhoto = await Bot.GetFileAsync(update.Message.Photo.Last().FileId);
@@ -968,6 +967,7 @@ namespace TelegramRAT
                             }
 
                             WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, Directory.GetCurrentDirectory() + "\\wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
+                            System.IO.File.Delete("wllppr.png");
                             await Bot.SendTextMessageAsync(update.Message.Chat.Id, "Done!", replyToMessageId: update.Message.MessageId);
                         }
                         catch (Exception ex)
