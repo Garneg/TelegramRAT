@@ -23,6 +23,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AForge" Version="2.2.5" />
+    <PackageReference Include="AForge.Video" Version="2.2.5" />
+    <PackageReference Include="AForge.Video.DirectShow" Version="2.2.5" />
     <PackageReference Include="IronPython" Version="2.7.12" />
     <PackageReference Include="IronPython.StdLib" Version="2.7.12" />
     <PackageReference Include="NAudio" Version="2.0.1" />

