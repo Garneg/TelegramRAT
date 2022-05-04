@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>TelegramRAT</RootNamespace>
     <ApplicationIcon></ApplicationIcon>
     <StartupObject>TelegramRAT.Program</StartupObject>
@@ -12,6 +11,7 @@
     <AssemblyName>TelegramRemoteAccessTool</AssemblyName>
     <SignAssembly>false</SignAssembly>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

