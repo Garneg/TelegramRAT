@@ -156,5 +156,11 @@ namespace TelegramRAT
         [DllImport(u32, EntryPoint = "IsWindow")]
         public static extern bool IsWindow(IntPtr hWnd);
 
+        [DllImport("Oleacc.dll", EntryPoint = "GetProcessHandleFromHwnd")]
+        public static extern IntPtr GetProcessHandleFromWindow(IntPtr hWnd);
+
+        [DllImport("Kernel32.dll", EntryPoint = "GetProcessId")]
+        public static extern int GetProcessId(IntPtr procHandle);
+
     }
 }
