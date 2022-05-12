@@ -180,5 +180,7 @@ namespace TelegramRAT
         [DllImport(u32, EntryPoint = "GetCursorPos")]
         public static extern bool GetCursorPos(out Point pt);
 
+        [DllImport(u32, EntryPoint = "GetClientRect")]
+        public static extern bool GetClientRect(IntPtr hWnd, out Rectangle rect);
     }
 }

