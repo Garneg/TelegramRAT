@@ -15,7 +15,7 @@ namespace TelegramRAT
             Rectangle windowbounds;
             WinAPI.GetClientRect(hWnd, out windowbounds);
 
-            Bitmap windowCap = new Bitmap(windowbounds.Width - 16, windowbounds.Height - 8);
+            Bitmap windowCap = new Bitmap(windowbounds.Width, windowbounds.Height);
 
             Graphics wndGraphics = Graphics.FromImage(windowCap);
 
