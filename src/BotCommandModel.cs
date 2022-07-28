@@ -13,6 +13,11 @@ namespace TelegramRAT
         public string[] Args { get; set; }
         public string RawArgs { get; set; }
         public Message Message { get; private set; }
+        public FileBase[] Files { get; private set; }
+        /// <summary>
+        /// Filename of Document, null if no document was added to message.
+        /// </summary>
+        public string? Filename { get; private set; }
 
         public static BotCommandModel FromMessage(Message message, string customCommandMarker = null)
         {
@@ -43,12 +48,41 @@ namespace TelegramRAT
                 command = command.Substring(0, index);
             }
 
+            List<FileBase> files = new List<FileBase>();
+            string filename = null;
+
+            if (message.ReplyToMessage != null)
+            {
+                if (message.ReplyToMessage.Photo != null)
+                {
+                    files.AddRange(message.ReplyToMessage.Photo);
+                }
+                if (message.ReplyToMessage.Document != null)
+                {
+                    files.Add(message.ReplyToMessage.Document);
+                    filename = message.ReplyToMessage.Document.FileName;
+                }
+            }
+            if (message.Document != null)
+            {
+                files.Clear();
+                files.Add(message.Document);
+                filename = message.Document.FileName;
+            }
+            if (message.Photo != null)
+            {
+                files.Clear();
+                files.AddRange(message.Photo);
+            }
+            
             var botCommandModel = new BotCommandModel
             {
                 Command = command,
                 Args = args,
                 RawArgs = rawArgs,
-                Message = message
+                Message = message, 
+                Files = files.ToArray(),
+                Filename = filename
             };
             return botCommandModel;
         }

