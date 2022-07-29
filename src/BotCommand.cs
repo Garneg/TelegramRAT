@@ -13,6 +13,7 @@ namespace TelegramRAT
     class BotCommand
     {
         public string Command { get; set; }
+        public string[] Aliases { get; set; }
 
         public string Description { get; set; } = null;
         public string Example { get; set; } = null;

