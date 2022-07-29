@@ -792,6 +792,8 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "message",
+                Aliases = new string[] { "msg" },
+
                 IgnoreCountArgs = true,
                 Description = "Send message with dialog window.",
                 Example = "message Lorem ipsum",
@@ -933,6 +935,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "wallpaper",
+                Aliases = new string[] { "wllppr" },
                 Description = "Change wallpapers. Don't foreget to attach the image.",
                 Execute = async model =>
                 {
@@ -1665,6 +1668,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "py",
+                Aliases = new string[] { "python" },
                 Description = "Execute python expression or file. To execute file attach it to message or send it and reply to it with command /py. Mind that all expressions and files execute in the same script scope. To clear scope /pyclearscope",
                 Example = "/py print('Hello World')",
                 Execute = async model =>
