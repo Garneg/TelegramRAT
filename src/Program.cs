@@ -161,6 +161,8 @@ namespace TelegramRAT
             }
         }
 
+        
+
         //Evil and scary method
         static bool ValidateModel(BotCommand command, BotCommandModel model)
         {
@@ -258,21 +260,25 @@ namespace TelegramRAT
                     }
                     string command = model.Args[0];
 
-                    var cmd = commands.Find(cmd => cmd.Command == command || cmd.Aliases.Contains(command));
+                    var cmd = commands.Find(cmd => cmd.Command == command || (cmd.Aliases != null && cmd.Aliases.Contains(command)));
                     if (cmd == null)
                     {
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, "This command doesn't exist! " +
                         "To get list of all commands - type /commands", replyToMessageId: model.Message.MessageId);
                         return;
                     }
-                    string Description = $"<b>{cmd.Command}</b>\n\n";
+                    string Description = $"<b>{cmd.Command.ToUpper()}</b>\n";
+                    if (cmd.Aliases != null && cmd.Aliases.Length != 0)
+                    {
+                        Description += $"Aliases: {string.Join(' ', cmd.Aliases)}\n"; 
+                    }
                     if (cmd.Description != null)
                     {
-                        Description += cmd.Description;
+                        Description += "\n" + cmd.Description;
                     }
                     else
                     {
-                        Description += "<i>No description provided</i>";
+                        Description += "\n<i>No description provided</i>";
                     }
                     if (cmd.Example != null)
                     {
