@@ -15,7 +15,7 @@ namespace TelegramRAT
         public Message Message { get; private set; }
         public FileBase[] Files { get; private set; }
         /// <summary>
-        /// Filename of Document, null if no document was added to message.
+        /// Document file name, null if no document was added to message.
         /// </summary>
         public string? Filename { get; private set; }
 
