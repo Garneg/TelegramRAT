@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.InteropServices;
 using System.Drawing;
+using System.Threading.Tasks;
 
 
 namespace TelegramRAT
@@ -20,9 +21,11 @@ namespace TelegramRAT
             return MessageBox(GetForegroundWindow(), Text, Caption, (uint)MsgBoxFlag.MB_APPLMODAL);
         }
 
-        public static int ShowMessageBox(string Text, string Caption, MsgBoxFlag Flag)
+        public static async Task<int> ShowMessageBoxAsync(string Text, string Caption, MsgBoxFlag Flag)
         {
-            return MessageBox(GetForegroundWindow(), Text, Caption, (uint)MsgBoxFlag.MB_APPLMODAL | (uint)Flag);
+            int answer = await Task.Run<int>(() => MessageBox(GetForegroundWindow(), Text, Caption, (uint)MsgBoxFlag.MB_APPLMODAL | (uint)Flag));
+            
+            return answer;
         }
 
         public enum MsgBoxFlag : ulong
