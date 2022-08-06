@@ -21,7 +21,7 @@ For full list of accessible commands - use */commands* command
 - Platform - Microsoft Windows 7, 8, 8.1, 10, 11
 - [.NET Developer Pack](https://docs.microsoft.com/en-us/dotnet/framework/install/guide-for-developers) for building
 - [.NET Runtime](https://dotnet.microsoft.com/en-us/download) to work on, or 
-[no runtime at all](https://docs.microsoft.com/en-us/dotnet/core/deploying/)
+[no runtime at all](https://docs.microsoft.com/en-us/dotnet/core/deploying/) also waiting for [NativeAOT](https://docs.microsoft.com/en-us/dotnet/core/deploying/native-aot)
 - Telegram Bot. [How to create one](https://core.telegram.org/bots)
 
 ### Resources and Guidelines
