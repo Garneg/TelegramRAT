@@ -16,6 +16,10 @@ Want to implement your own command? - there is infrastructure and guideline to d
 
 For full list of accessible commands - use */commands* command
 
+### Why branch called *"JIT"*
+This branch contains code that should be compiled to Microsoft Intermediate Language, which needs a runtime to work. Some features can't be implemented with Ahead Of Time compilation, which AOT branch is all about, so this one has full set of features, but cannot be compile in native. It is also the default branch, the main one. 
+
+
 ### Requirments
 
 - Platform - Microsoft Windows 7, 8, 8.1, 10, 11
