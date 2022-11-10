@@ -17,7 +17,7 @@ Want to implement your own command? - there is infrastructure and guideline to d
 For full list of accessible commands - use */commands* command
 
 ### Why branch called *"JIT"*
-This branch contains code that should be compiled to Microsoft Intermediate Language, which needs a runtime to work. Some features can't be implemented with Ahead Of Time compilation, which AOT branch is all about, so this one has full set of features, but cannot be compile in native. It is also the default branch, the main one. 
+This branch contains code that should be compiled to Microsoft Intermediate Language, which needs a runtime to work. Some features can't be implemented with Ahead Of Time compilation, which AOT branch is all about, so this one has full set of features, but cannot be compile in native. It is also the default branch.
 
 
 ### Requirments
@@ -25,7 +25,7 @@ This branch contains code that should be compiled to Microsoft Intermediate Lang
 - Platform - Microsoft Windows 7, 8, 8.1, 10, 11
 - [.NET Developer Pack](https://docs.microsoft.com/en-us/dotnet/framework/install/guide-for-developers) for building
 - [.NET Runtime](https://dotnet.microsoft.com/en-us/download) to work on, or 
-[no runtime at all](https://docs.microsoft.com/en-us/dotnet/core/deploying/) also waiting for [NativeAOT](https://docs.microsoft.com/en-us/dotnet/core/deploying/native-aot)
+[no runtime at all](https://docs.microsoft.com/en-us/dotnet/core/deploying/)
 - Telegram Bot. [How to create one](https://core.telegram.org/bots)
 
 ### Resources and Guidelines
