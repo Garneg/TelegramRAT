@@ -9,7 +9,7 @@ Want to implement your own command? - there is infrastructure and guideline to d
 * Keyboard and Mouse Input Simulation
 * Full Access to File System (including files upload)
 * CMD Commands Executing
-* Python Scripts Executing
+* Python 2.7 Scripts Executing
 * Recording Audio
 * Taking Photo From Webcamera
 * Shutdown, Restart, Logoff
